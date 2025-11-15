@@ -3,25 +3,23 @@
   "version": "1.0.0",
   "description": "Educational event-driven job auto-response system for HH.ru | Образовательный проект автооткликов на вакансии HH.ru с событийно-управляемой архитектурой",
   "private": true,
+  "type": "module",
   "scripts": {
     "db:up": "docker-compose -f docker/docker-compose.yml up -d",
     "db:down": "docker-compose -f docker/docker-compose.yml down",
     "db:logs": "docker logs -f hh-auto-respond-postgres",
     "db:status": "docker ps --filter name=hh-auto-respond-postgres",
-    "db:reset": "npm run db:down && docker volume rm hh_auto_respond_postgres_data 2>/dev/null || true && npm run db:up && sleep 3 && npm run migrate && npm run seed",
-    "migrate": "prisma migrate dev",
-    "migrate:deploy": "prisma migrate deploy",
-    "seed": "prisma db seed",
-    "studio": "prisma studio",
-    "generate": "prisma generate",
-    "backup": "node scripts/backup.js",
-    "restore": "node scripts/restore.js",
+    "db:reset": "bun run db:down && docker volume rm hh_auto_respond_postgres_data 2>/dev/null || true && bun run db:up && sleep 3 && bun run migrate && bun run seed",
+    "migrate": "bunx prisma migrate dev",
+    "migrate:deploy": "bunx prisma migrate deploy",
+    "seed": "bun run prisma/seed.ts",
+    "studio": "bunx prisma studio",
+    "generate": "bunx prisma generate",
+    "backup": "bun run scripts/backup.ts",
+    "restore": "bun run scripts/restore.ts",
     "backup:list": "ls -lh backups/*.sql 2>/dev/null || echo 'Нет бэкапов'",
-    "setup": "npm install && npm run db:up && sleep 3 && npm run migrate && npm run seed",
-    "clean": "npm run db:down && docker volume rm hh_auto_respond_postgres_data 2>/dev/null || true && rm -rf node_modules prisma/migrations"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
+    "setup": "bun install && bun run db:up && sleep 3 && bun run migrate && bun run seed",
+    "clean": "bun run db:down && docker volume rm hh_auto_respond_postgres_data 2>/dev/null || true && rm -rf node_modules prisma/migrations"
   },
   "keywords": [
     "event-driven",
@@ -42,9 +40,12 @@
   "author": "@divatoz",
   "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^5.20.0"
+    "@prisma/client": "^5.20.0",
+    "pino": "^9.0.0"
   },
   "devDependencies": {
-    "prisma": "^5.20.0"
+    "prisma": "^5.20.0",
+    "pino-pretty": "^11.0.0",
+    "@types/bun": "^1.1.0"
   }
 }
