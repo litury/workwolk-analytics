@@ -8,10 +8,10 @@
 
 ```bash
 # 1. Поднять БД
-npm run db:up
+bun run db:up
 
 # 2. Открыть Prisma Studio для просмотра данных
-npm run studio
+bun run studio
 ```
 
 Откроется http://localhost:5555 с графическим интерфейсом.
@@ -20,20 +20,20 @@ npm run studio
 
 ```bash
 # Просмотреть данные
-npm run studio
+bun run studio
 
 # Сделать бэкап перед экспериментами
-npm run backup
+bun run backup
 
 # Посмотреть логи PostgreSQL
-npm run db:logs
+bun run db:logs
 ```
 
 ### Конец рабочего дня
 
 ```bash
 # Остановить БД (опционально)
-npm run db:down
+bun run db:down
 ```
 
 ---
@@ -51,10 +51,10 @@ npm run db:down
 # }
 
 # 2. Создать миграцию
-npm run migrate
+bun run migrate
 
 # 3. Проверить изменения через Prisma Studio
-npm run studio
+bun run studio
 ```
 
 ### Пример: добавление нового поля
@@ -92,7 +92,7 @@ npx prisma migrate dev --name add_skills_to_resume
 
 ```bash
 # Перед экспериментами всегда делайте бэкап!
-npm run backup
+bun run backup
 
 # Создастся файл: backups/backup_2025-10-31_143052.sql
 ```
@@ -100,7 +100,7 @@ npm run backup
 ### Посмотреть список бэкапов
 
 ```bash
-npm run backup:list
+bun run backup:list
 
 # Вывод:
 # -rw-r--r--  1 user  staff   45K Oct 31 14:30 backup_2025-10-31_143052.sql
@@ -110,7 +110,7 @@ npm run backup:list
 ### Восстановить из бэкапа
 
 ```bash
-npm run restore
+bun run restore
 
 # Интерактивный выбор:
 # ? Select backup to restore (Use arrow keys)
@@ -125,7 +125,7 @@ npm run restore
 ### Быстрый сброс
 
 ```bash
-npm run db:reset
+bun run db:reset
 
 # Это выполнит:
 # 1. Остановит БД
@@ -139,10 +139,10 @@ npm run db:reset
 
 ```bash
 # 1. Полная очистка
-npm run clean
+bun run clean
 
 # 2. Установка с нуля
-npm run setup
+bun run setup
 ```
 
 ---
@@ -167,7 +167,7 @@ npm run setup
 ### Перезагрузить seed данные
 
 ```bash
-npm run seed
+bun run seed
 ```
 
 ### Изменить seed данные
@@ -175,7 +175,7 @@ npm run seed
 Отредактируйте файл `prisma/seed.js` и запустите:
 
 ```bash
-npm run seed
+bun run seed
 ```
 
 ---
@@ -211,7 +211,7 @@ npm run seed
 ### Prisma Studio (рекомендуется)
 
 ```bash
-npm run studio
+bun run studio
 ```
 
 Откроется http://localhost:5555
@@ -234,14 +234,14 @@ npm run studio
 
 ```bash
 # 1. Проверить статус контейнера
-npm run db:status
+bun run db:status
 
 # 2. Посмотреть логи
-npm run db:logs
+bun run db:logs
 
 # 3. Перезапустить
-npm run db:down
-npm run db:up
+bun run db:down
+bun run db:up
 ```
 
 ### Порт 5432 занят
@@ -269,11 +269,11 @@ brew services stop postgresql
 
 ```bash
 # 1. Сбросить БД
-npm run db:reset
+bun run db:reset
 
 # 2. Если не помогло - полная переустановка
-npm run clean
-npm run setup
+bun run clean
+bun run setup
 ```
 
 ### Данные не обновляются в Prisma Studio
@@ -284,7 +284,7 @@ npm run setup
 # Обновить страницу в браузере (F5)
 # Или перезапустить Prisma Studio:
 # Ctrl+C
-npm run studio
+bun run studio
 ```
 
 ---
@@ -295,24 +295,24 @@ npm run studio
 
 ```bash
 # Всегда делайте бэкап!
-npm run backup
+bun run backup
 ```
 
 ### После изменения schema.prisma
 
 ```bash
 # 1. Создать миграцию
-npm run migrate
+bun run migrate
 
 # 2. Проверить в Prisma Studio
-npm run studio
+bun run studio
 ```
 
 ### Регулярные бэкапы
 
 ```bash
 # Создавайте бэкапы перед важными изменениями
-npm run backup
+bun run backup
 
 # Удаляйте старые бэкапы (хранить 3-5 последних)
 ls -lt backups/
@@ -323,7 +323,7 @@ rm backups/backup_OLD_TIMESTAMP.sql
 
 ```bash
 # После git pull с новыми миграциями:
-npm run migrate
+bun run migrate
 
 # Проверить актуальность схемы:
 npx prisma validate

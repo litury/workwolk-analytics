@@ -60,7 +60,7 @@ Password: postgres
 ### Через Prisma Studio
 
 ```bash
-npm run studio
+bun run studio
 ```
 
 Откроется http://localhost:5555 с графическим интерфейсом.
@@ -109,7 +109,7 @@ ORDER BY a.applied_at DESC;
 ### Изменить схему
 
 1. Отредактировать `prisma/schema.prisma`
-2. Запустить `npm run migrate`
+2. Запустить `bun run migrate`
 3. Prisma создаст и применит миграцию
 
 ### Пример: добавить поле
@@ -122,7 +122,7 @@ model Resume {
 ```
 
 ```bash
-npx prisma migrate dev --name add_skills_to_resume
+bunx prisma migrate dev --name add_skills_to_resume
 # Создаст файл: prisma/migrations/TIMESTAMP_add_skills_to_resume/migration.sql
 ```
 
@@ -130,7 +130,7 @@ npx prisma migrate dev --name add_skills_to_resume
 
 ```bash
 # Внимание: это удалит данные!
-npm run db:reset
+bun run db:reset
 ```
 
 ---
@@ -146,13 +146,13 @@ npm run db:reset
 ### Перезагрузить seed данные
 
 ```bash
-npm run seed
+bun run seed
 ```
 
 ### Полный сброс БД с seed
 
 ```bash
-npm run db:reset
+bun run db:reset
 ```
 
 ---
@@ -162,21 +162,21 @@ npm run db:reset
 ### Создать бэкап
 
 ```bash
-npm run backup
+bun run backup
 # Создаст: backups/backup_TIMESTAMP.sql
 ```
 
 ### Восстановить из бэкапа
 
 ```bash
-npm run restore
+bun run restore
 # Интерактивный выбор файла
 ```
 
 ### Список бэкапов
 
 ```bash
-npm run backup:list
+bun run backup:list
 ```
 
 ---
@@ -187,14 +187,14 @@ npm run backup:list
 
 ```bash
 # Проверить статус контейнера
-npm run db:status
+bun run db:status
 
 # Посмотреть логи
-npm run db:logs
+bun run db:logs
 
 # Перезапустить
-npm run db:down
-npm run db:up
+bun run db:down
+bun run db:up
 ```
 
 ### Ошибка подключения Prisma
@@ -210,5 +210,5 @@ cat .env | grep DATABASE_URL
 ### Сбросить всё к начальному состоянию
 
 ```bash
-npm run db:reset
+bun run db:reset
 ```

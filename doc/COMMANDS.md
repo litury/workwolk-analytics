@@ -6,26 +6,26 @@
 
 | Команда | Описание |
 |---------|----------|
-| `npm run db:up` | Поднять PostgreSQL в Docker |
-| `npm run db:down` | Остановить PostgreSQL |
-| `npm run db:logs` | Показать логи PostgreSQL |
-| `npm run db:status` | Статус контейнера |
-| `npm run db:reset` | Полный сброс БД (удалить → создать → миграции → seed) |
+| `bun run db:up` | Поднять PostgreSQL в Docker |
+| `bun run db:down` | Остановить PostgreSQL |
+| `bun run db:logs` | Показать логи PostgreSQL |
+| `bun run db:status` | Статус контейнера |
+| `bun run db:reset` | Полный сброс БД (удалить → создать → миграции → seed) |
 
 ### Примеры использования
 
 ```bash
 # Запустить БД
-npm run db:up
+bun run db:up
 
 # Проверить статус
-npm run db:status
+bun run db:status
 
 # Посмотреть логи в реальном времени
-npm run db:logs
+bun run db:logs
 
 # Остановить БД
-npm run db:down
+bun run db:down
 ```
 
 ---
@@ -34,25 +34,25 @@ npm run db:down
 
 | Команда | Описание |
 |---------|----------|
-| `npm run migrate` | Применить миграции (создаёт новую если схема изменилась) |
-| `npm run seed` | Загрузить моковые данные |
-| `npm run studio` | Открыть Prisma Studio (GUI для БД) |
-| `npm run generate` | Сгенерировать Prisma Client |
+| `bun run migrate` | Применить миграции (создаёт новую если схема изменилась) |
+| `bun run seed` | Загрузить моковые данные |
+| `bun run studio` | Открыть Prisma Studio (GUI для БД) |
+| `bun run generate` | Сгенерировать Prisma Client |
 
 ### Примеры использования
 
 ```bash
 # Создать и применить миграцию после изменения schema.prisma
-npm run migrate
+bun run migrate
 
 # Открыть графический интерфейс БД
-npm run studio
+bun run studio
 
 # Перезагрузить seed данные
-npm run seed
+bun run seed
 
 # Сгенерировать Prisma Client (после изменения схемы)
-npm run generate
+bun run generate
 ```
 
 ---
@@ -61,21 +61,21 @@ npm run generate
 
 | Команда | Описание |
 |---------|----------|
-| `npm run backup` | Создать бэкап БД → `backups/backup_TIMESTAMP.sql` |
-| `npm run restore` | Восстановить БД из бэкапа (интерактивный выбор) |
-| `npm run backup:list` | Список всех бэкапов |
+| `bun run backup` | Создать бэкап БД → `backups/backup_TIMESTAMP.sql` |
+| `bun run restore` | Восстановить БД из бэкапа (интерактивный выбор) |
+| `bun run backup:list` | Список всех бэкапов |
 
 ### Примеры использования
 
 ```bash
 # Создать бэкап перед экспериментами
-npm run backup
+bun run backup
 
 # Посмотреть все доступные бэкапы
-npm run backup:list
+bun run backup:list
 
 # Восстановить из бэкапа (выберете файл из списка)
-npm run restore
+bun run restore
 ```
 
 ---
@@ -84,17 +84,17 @@ npm run restore
 
 | Команда | Описание |
 |---------|----------|
-| `npm run setup` | Полная установка (зависимости + БД + миграции + seed) |
-| `npm run clean` | Полная очистка (удалить БД, volumes, node_modules, миграции) |
+| `bun run setup` | Полная установка (зависимости + БД + миграции + seed) |
+| `bun run clean` | Полная очистка (удалить БД, volumes, node_modules, миграции) |
 
 ### Примеры использования
 
 ```bash
 # Первый запуск проекта после клонирования
-npm run setup
+bun run setup
 
 # Полная очистка проекта (для переустановки с нуля)
-npm run clean
+bun run clean
 ```
 
 ---
@@ -105,15 +105,15 @@ npm run clean
 
 ```bash
 # 1. Поднять БД
-npm run db:up
+bun run db:up
 
 # 2. Открыть Prisma Studio
-npm run studio
+bun run studio
 
 # 3. (Работа с кодом...)
 
 # 4. Остановить БД в конце дня
-npm run db:down
+bun run db:down
 ```
 
 ### Изменение схемы БД
@@ -122,31 +122,31 @@ npm run db:down
 # 1. Отредактировать prisma/schema.prisma
 
 # 2. Создать и применить миграцию
-npm run migrate
+bun run migrate
 
 # 3. Проверить в Prisma Studio
-npm run studio
+bun run studio
 ```
 
 ### Работа с бэкапами
 
 ```bash
 # Перед экспериментами
-npm run backup
+bun run backup
 
 # Если что-то пошло не так
-npm run restore
+bun run restore
 ```
 
 ### Полный сброс
 
 ```bash
 # Сбросить БД к начальному состоянию
-npm run db:reset
+bun run db:reset
 
 # Или полная очистка + переустановка
-npm run clean
-npm run setup
+bun run clean
+bun run setup
 ```
 
 ---
@@ -177,19 +177,19 @@ docker-compose -f docker/docker-compose.yml down -v
 
 ```bash
 # Создать миграцию с именем
-npx prisma migrate dev --name add_new_field
+bunx prisma migrate dev --name add_new_field
 
 # Применить миграции в production
-npx prisma migrate deploy
+bunx prisma migrate deploy
 
 # Сбросить БД (удалит все данные!)
-npx prisma migrate reset
+bunx prisma migrate reset
 
 # Валидация схемы
-npx prisma validate
+bunx prisma validate
 
 # Форматирование schema.prisma
-npx prisma format
+bunx prisma format
 ```
 
 ---

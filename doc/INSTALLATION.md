@@ -7,8 +7,7 @@
 ### Обязательные
 
 - **Docker Desktop** 4.0+ (для PostgreSQL)
-- **Node.js** 18+ (LTS рекомендуется)
-- **npm** 9+
+- **Bun** 1.0+ ([установка](https://bun.sh/docs/installation))
 - **Git** 2.30+
 
 ### Опциональные
@@ -31,10 +30,10 @@ cd hh-auto-respond-eda
 cp .env.example .env
 
 # 3. Запустить всё
-npm run setup
+bun run setup
 
 # 4. Открыть Prisma Studio
-npm run studio
+bun run studio
 ```
 
 Откроется http://localhost:5555 с GUI для работы с БД.
@@ -59,7 +58,7 @@ cd hh-auto-respond-eda
 ### Шаг 2: Установить зависимости
 
 ```bash
-npm install
+bun install
 ```
 
 **Что устанавливается:**
@@ -94,7 +93,7 @@ POSTGRES_PORT=5432
 ### Шаг 4: Запустить PostgreSQL в Docker
 
 ```bash
-npm run db:up
+bun run db:up
 ```
 
 **Что происходит:**
@@ -104,14 +103,14 @@ docker-compose -f docker/docker-compose.yml up -d
 
 **Проверка:**
 ```bash
-npm run db:status
+bun run db:status
 # Вывод: hh-auto-respond-postgres  Up
 ```
 
 ### Шаг 5: Применить миграции
 
 ```bash
-npm run migrate
+bun run migrate
 ```
 
 **Что происходит:**
@@ -128,7 +127,7 @@ docker exec -it hh-auto-respond-postgres psql -U postgres -d hh_auto_respond_dev
 ### Шаг 6: Загрузить моковые данные
 
 ```bash
-npm run seed
+bun run seed
 ```
 
 **Что загружается:**
@@ -138,7 +137,7 @@ npm run seed
 
 **Проверка:**
 ```bash
-npm run studio
+bun run studio
 ```
 
 Откроется http://localhost:5555 — проверьте, что данные загружены.
@@ -161,7 +160,7 @@ hh-auto-respond-postgres  postgres:16-alpine  Up 2 minutes  5432->5432/tcp
 ### Проверка 2: База данных
 
 ```bash
-npm run db:status
+bun run db:status
 ```
 
 **Ожидаемый вывод:**
@@ -201,7 +200,7 @@ docker exec -it hh-auto-respond-postgres psql -U postgres -d hh_auto_respond_dev
 ### Проверка 5: Prisma Studio
 
 ```bash
-npm run studio
+bun run studio
 ```
 
 Откройте http://localhost:5555 и убедитесь, что:
@@ -221,7 +220,7 @@ npm run studio
 - ✅ Моковые данные (2 пользователя, 3 резюме, 5 откликов)
 - ✅ Prisma Studio (GUI для БД)
 - ✅ Скрипты бэкапа/восстановления
-- ✅ npm команды для управления
+- ✅ Команды для управления проектом
 
 ---
 
@@ -240,7 +239,7 @@ Error: Cannot connect to the Docker daemon
 open -a Docker
 
 # Подождать 30 секунд, затем повторить
-npm run db:up
+bun run db:up
 ```
 
 ### Ошибка: Порт 5432 занят
@@ -264,7 +263,7 @@ brew services stop postgresql
 # Затем в DATABASE_URL тоже изменить на :5433
 ```
 
-### Ошибка: npm install fails
+### Ошибка: bun install fails
 
 **Проблема:**
 ```
@@ -273,14 +272,14 @@ Error: Cannot find module '@prisma/client'
 
 **Решение:**
 ```bash
-# Очистить npm cache
-npm cache clean --force
+# Очистить Bun cache
+bun pm cache rm
 
-# Удалить node_modules
-rm -rf node_modules package-lock.json
+# Удалить node_modules и lockfile
+rm -rf node_modules bun.lockb
 
 # Переустановить
-npm install
+bun install
 ```
 
 ### Ошибка: Миграции не применяются
@@ -293,16 +292,16 @@ Error: Can't reach database server
 **Решение:**
 ```bash
 # 1. Проверить, что БД запущена
-npm run db:status
+bun run db:status
 
 # 2. Проверить .env
 cat .env | grep DATABASE_URL
 
 # 3. Перезапустить БД
-npm run db:down
-npm run db:up
+bun run db:down
+bun run db:up
 sleep 3
-npm run migrate
+bun run migrate
 ```
 
 ### Ошибка: Seed не загружается
@@ -315,7 +314,7 @@ Error: P2002: Unique constraint failed
 **Решение:**
 ```bash
 # Данные уже загружены, сбросить БД
-npm run db:reset
+bun run db:reset
 ```
 
 ---
@@ -326,19 +325,19 @@ npm run db:reset
 
 ```bash
 # 1. Остановить и удалить всё
-npm run clean
+bun run clean
 
 # 2. Установить заново
-npm run setup
+bun run setup
 
 # 3. Проверить
-npm run studio
+bun run studio
 ```
 
 **Внимание:** Это удалит:
 - Docker контейнер
 - Docker volume с данными
-- node_modules
+- node_modules и bun.lockb
 - Prisma миграции (будут пересозданы)
 
 ---
@@ -348,15 +347,15 @@ npm run studio
 После успешной установки:
 
 1. **Изучите документацию:**
-   - [Commands Reference](./COMMANDS.md) - все npm команды
+   - [Commands Reference](./COMMANDS.md) - все команды проекта
    - [Database Guide](./DATABASE.md) - работа с БД
    - [Usage Guide](./USAGE.md) - типичные сценарии
 
 2. **Попробуйте основные команды:**
    ```bash
-   npm run studio    # Открыть GUI для БД
-   npm run backup    # Создать бэкап
-   npm run db:logs   # Посмотреть логи
+   bun run studio    # Открыть GUI для БД
+   bun run backup    # Создать бэкап
+   bun run db:logs   # Посмотреть логи
    ```
 
 3. **Изучите схему БД:**
@@ -370,7 +369,7 @@ npm run studio
 
 ---
 
-## Альтернативная установка (без npm run setup)
+## Альтернативная установка (без bun run setup)
 
 Если предпочитаете ручной контроль:
 
@@ -380,25 +379,25 @@ git clone https://github.com/litury/hh-auto-respond-eda.git
 cd hh-auto-respond-eda
 
 # 2. Установить зависимости
-npm install
+bun install
 
 # 3. Настроить .env
 cp .env.example .env
 
 # 4. Запустить PostgreSQL
-npm run db:up
+bun run db:up
 
 # 5. Подождать 3 секунды
 sleep 3
 
 # 6. Применить миграции
-npm run migrate
+bun run migrate
 
 # 7. Загрузить seed данные
-npm run seed
+bun run seed
 
 # 8. Открыть Prisma Studio
-npm run studio
+bun run studio
 ```
 
 ---
@@ -408,7 +407,7 @@ npm run studio
 ### Требования Windows
 
 - **Docker Desktop for Windows** (WSL2 backend)
-- **Node.js** 18+ (установить через nvm-windows или официальный installer)
+- **Bun** 1.0+ ([установка для Windows](https://bun.sh/docs/installation#windows))
 - **Git for Windows**
 
 ### Особенности
@@ -429,8 +428,8 @@ npm run studio
 git clone https://github.com/litury/hh-auto-respond-eda.git
 cd hh-auto-respond-eda
 copy .env.example .env
-npm run setup
-npm run studio
+bun run setup
+bun run studio
 ```
 
 ---
@@ -441,13 +440,13 @@ npm run studio
 
 ```bash
 # 1. Обновить зависимости (если изменился package.json)
-npm install
+bun install
 
 # 2. Применить новые миграции (если изменилась схема)
-npm run migrate
+bun run migrate
 
 # 3. Проверить всё работает
-npm run studio
+bun run studio
 ```
 
 ---

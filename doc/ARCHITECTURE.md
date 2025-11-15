@@ -9,7 +9,7 @@ hh-auto-respond-eda/
 ├── doc/
 │   ├── brief.md                 # Технический бриф проекта (по образцу лекции)
 │   ├── ARCHITECTURE.md          # Этот файл
-│   ├── COMMANDS.md              # Справочник npm команд
+│   ├── COMMANDS.md              # Справочник команд
 │   ├── DATABASE.md              # Руководство по работе с БД
 │   ├── INSTALLATION.md          # Детальная установка
 │   ├── USAGE.md                 # Частые сценарии использования
@@ -36,7 +36,7 @@ hh-auto-respond-eda/
 │   ├── backup.js                # Скрипт создания бэкапа
 │   └── restore.js               # Скрипт восстановления
 │
-├── package.json                 # npm команды
+├── package.json                 # команды
 ├── .gitignore
 ├── .env.example                 # Пример переменных окружения
 ├── LICENSE                      # MIT License
@@ -98,7 +98,7 @@ hh-auto-respond-eda/
 - Docker Compose - инфраструктура
 
 **DevOps:**
-- npm scripts - автоматизация
+- bun scripts - автоматизация
 - Бэкапы/восстановление через pg_dump
 
 ### Планируемый стек (Этап 1: MVP)

@@ -5,7 +5,7 @@
 ## Создание бэкапа
 
 ```bash
-npm run backup
+bun run backup
 ```
 
 Создаст файл: `backup_YYYY-MM-DD-HH-MM-SS.sql`
@@ -13,7 +13,7 @@ npm run backup
 ## Восстановление из бэкапа
 
 ```bash
-npm run restore
+bun run restore
 ```
 
 Интерактивный выбор бэкапа из списка.
@@ -21,7 +21,7 @@ npm run restore
 ## Просмотр бэкапов
 
 ```bash
-npm run backup:list
+bun run backup:list
 ```
 
 ## Формат файлов

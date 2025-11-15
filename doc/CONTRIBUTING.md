@@ -6,10 +6,10 @@
 
 ```bash
 # Установка и запуск
-npm run setup
+bun run setup
 
 # Открыть Prisma Studio для просмотра данных
-npm run studio
+bun run studio
 ```
 
 ## Как внести изменения
