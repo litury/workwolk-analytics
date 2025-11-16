@@ -5,6 +5,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bun run src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "test:unit": "bun test --testPathPattern=\".test.ts$\"",
+    "test:integration": "bun test --testPathPattern=\"integration.test.ts$\"",
+    "test:ci": "bun test --bail --coverage",
     "db:up": "docker-compose -f docker/docker-compose.yml up -d",
     "db:down": "docker-compose -f docker/docker-compose.yml down",
     "db:logs": "docker logs -f hh-auto-respond-postgres",
@@ -41,7 +49,9 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.20.0",
-    "pino": "^9.0.0"
+    "pino": "^9.0.0",
+    "elysia": "^1.4.0",
+    "@elysiajs/cors": "^1.4.0"
   },
   "devDependencies": {
     "prisma": "^5.20.0",
