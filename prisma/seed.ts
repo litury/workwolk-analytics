@@ -40,7 +40,18 @@ async function main() {
     },
   });
 
-  console.log('✅ Создано пользователей: 2');
+  const user3 = await prisma.user.create({
+    data: {
+      hhUserId: 'hh_user_003',
+      email: 'alexey.web@example.com',
+      fullName: 'Алексей Веб',
+      accessToken: 'mock_access_token_user3_very_long_string_for_testing',
+      refreshToken: 'mock_refresh_token_user3_very_long_string_for_testing',
+      tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log('✅ Создано пользователей: 3');
 
   // ==============================================
   // РЕЗЮМЕ ИЗ HH.RU

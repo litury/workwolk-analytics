@@ -7,11 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Пользователь Telegram с OAuth токенами HH.ru
+// Пользователь с OAuth токенами HH.ru
 model User {
   id           String    @id @default(uuid())
-  telegramId   BigInt    @unique @map("telegram_id")
-  hhUserId     String?   @unique @map("hh_user_id")
+  hhUserId     String    @unique @map("hh_user_id")
   email        String?   @unique
   fullName     String?   @map("full_name")
 
@@ -19,6 +18,9 @@ model User {
   accessToken  String?   @map("access_token") @db.Text
   refreshToken String?   @map("refresh_token") @db.Text
   tokenExpiry  DateTime? @map("token_expiry")
+
+  // Telegram опционально для будущей интеграции
+  telegramId   BigInt?   @unique @map("telegram_id")
 
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")

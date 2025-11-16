@@ -4,20 +4,23 @@
 
 ## Схема базы данных
 
-### Таблица `users` — пользователи Telegram
+### Таблица `users` — пользователи с OAuth HH.ru
 
-| Поле | Тип | Описание |
-|------|-----|----------|
-| id | UUID | Первичный ключ |
-| telegram_id | BIGINT | Telegram ID (уникальный) |
-| hh_user_id | VARCHAR | HH.ru User ID |
-| email | VARCHAR | Email пользователя |
-| full_name | VARCHAR | Полное имя |
-| access_token | TEXT | OAuth access token HH.ru |
-| refresh_token | TEXT | OAuth refresh token |
-| token_expiry | TIMESTAMP | Срок действия токена |
-| created_at | TIMESTAMP | Дата создания |
-| updated_at | TIMESTAMP | Дата обновления |
+| Поле | Тип | Описание | Обязательность |
+|------|-----|----------|----------------|
+| id | UUID | Первичный ключ | **Required** |
+| hh_user_id | VARCHAR | HH.ru User ID (уникальный) | **Required** ⭐ |
+| email | VARCHAR | Email пользователя | Optional |
+| full_name | VARCHAR | Полное имя | Optional |
+| access_token | TEXT | OAuth access token HH.ru | Optional |
+| refresh_token | TEXT | OAuth refresh token | Optional |
+| token_expiry | TIMESTAMP | Срок действия токена | Optional |
+| telegram_id | BIGINT | Telegram ID для будущей интеграции | Optional 🔜 |
+| created_at | TIMESTAMP | Дата создания | **Required** |
+| updated_at | TIMESTAMP | Дата обновления | **Required** |
+
+**⭐ Primary Identifier:** `hh_user_id` - основной идентификатор пользователя (HH.ru OAuth)
+**🔜 Future Feature:** `telegram_id` - опциональный, для будущей Telegram Mini App интеграции
 
 ### Таблица `resumes` — резюме из HH.ru
 
