@@ -6,7 +6,7 @@
 
 HH Auto Respond EDA — образовательный проект, демонстрирующий событийно-управляемую архитектуру (Event-Driven Architecture) для автоматизации откликов на вакансии HH.ru. Построен на Vue.js 3, NestJS, PostgreSQL и Bull/а. Может быть адаптирован под Telegram Mini App.
 
-**Стек технологий:** Vue.js 3 • NestJS • PostgreSQL • Prisma ORM • Bull/BullMQ • Docker
+**Стек технологий:** Bun • ElysiaJS • TypeScript • PostgreSQL • Prisma ORM • Pino Logger • Docker
 
 ## Возможности
 
@@ -41,10 +41,16 @@ bun run studio
 
 ## Документация
 
+### Основные руководства
 - [Руководство по установке](./doc/INSTALLATION.md) - Детальная инструкция по настройке
 - [Справочник команд](./doc/COMMANDS.md) - Все команды и скрипты
 - [Руководство по БД](./doc/DATABASE.md) - Схема, миграции и примеры
 - [Руководство по использованию](./doc/USAGE.md) - Типичные сценарии работы
+
+### Технические детали
+- [TypeScript Setup](./doc/TYPESCRIPT.md) - TypeScript конфигурация и strict mode
+- [Logger (Pino)](./doc/LOGGER.md) - Настройка и использование логирования
+- [Тестирование](./tests/README.md) - E2E тесты на Bun
 - [Архитектура](./doc/ARCHITECTURE.md) - Структура проекта и паттерны
 - [Технический бриф](./doc/brief.md) - Полная спецификация проекта
 
