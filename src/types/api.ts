@@ -2,7 +2,7 @@
  * Общие типы для API
  */
 
-import { User, Resume, Application } from '@prisma/client';
+import type { User, Resume, Application } from '../db/schema';
 
 /**
  * Стандартная обертка для ответа API
