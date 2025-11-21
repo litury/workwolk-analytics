@@ -5,8 +5,9 @@
  * Абстрагирует доступ к данным (Сток в терминологии EDA)
  */
 
-import { User } from '@prisma/client';
-import { prisma } from '../../config/database';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { users, type User, type NewUser } from '../../db/schema';
 import { createLogger } from '../../utils/logger';
 
 const log = createLogger('UserRepository');
@@ -18,9 +19,9 @@ export class UserRepository {
   async findByIdAsync(_id: string) {
     log.info('Finding user by ID', { id: _id });
 
-    return await prisma.user.findUnique({
-      where: { id: _id },
-      include: {
+    return await db.query.users.findFirst({
+      where: eq(users.id, _id),
+      with: {
         resumes: true,
         applications: true
       }
@@ -33,9 +34,11 @@ export class UserRepository {
   async findByTelegramIdAsync(_telegramId: bigint): Promise<User | null> {
     log.info('Finding user by Telegram ID', { telegramId: _telegramId.toString() });
 
-    return await prisma.user.findUnique({
-      where: { telegramId: _telegramId }
+    const result = await db.query.users.findFirst({
+      where: eq(users.telegramId, _telegramId)
     });
+
+    return result ?? null;
   }
 
   /**
@@ -44,9 +47,11 @@ export class UserRepository {
   async findByHhUserIdAsync(_hhUserId: string): Promise<User | null> {
     log.info('Finding user by HH User ID', { hhUserId: _hhUserId });
 
-    return await prisma.user.findUnique({
-      where: { hhUserId: _hhUserId }
+    const result = await db.query.users.findFirst({
+      where: eq(users.hhUserId, _hhUserId)
     });
+
+    return result ?? null;
   }
 
   /**
@@ -55,8 +60,8 @@ export class UserRepository {
   async findAllAsync() {
     log.info('Finding all users');
 
-    return await prisma.user.findMany({
-      include: {
+    return await db.query.users.findMany({
+      with: {
         resumes: true,
         applications: true
       }
@@ -81,9 +86,8 @@ export class UserRepository {
       telegramId: _data.telegramId?.toString()
     });
 
-    return await prisma.user.create({
-      data: _data
-    });
+    const [user] = await db.insert(users).values(_data).returning();
+    return user;
   }
 
   /**
@@ -98,10 +102,13 @@ export class UserRepository {
   }) {
     log.info('Updating user', { id: _id });
 
-    return await prisma.user.update({
-      where: { id: _id },
-      data: _data
-    });
+    const [user] = await db
+      .update(users)
+      .set({ ..._data, updatedAt: new Date() })
+      .where(eq(users.id, _id))
+      .returning();
+
+    return user;
   }
 
   /**
@@ -110,9 +117,8 @@ export class UserRepository {
   async deleteAsync(_id: string) {
     log.info('Deleting user', { id: _id });
 
-    return await prisma.user.delete({
-      where: { id: _id }
-    });
+    const [user] = await db.delete(users).where(eq(users.id, _id)).returning();
+    return user;
   }
 }
 

@@ -5,7 +5,9 @@
  * Абстрагирует доступ к данным (Сток в терминологии EDA)
  */
 
-import { prisma } from '../../config/database';
+import { eq, and, desc, count } from 'drizzle-orm';
+import { db } from '../../db/client';
+import { applications } from '../../db/schema';
 import { createLogger } from '../../utils/logger';
 
 const log = createLogger('ApplicationRepository');
@@ -17,9 +19,9 @@ export class ApplicationRepository {
   async findByIdAsync(_id: string) {
     log.info('Finding application by ID', { id: _id });
 
-    return await prisma.application.findUnique({
-      where: { id: _id },
-      include: {
+    return await db.query.applications.findFirst({
+      where: eq(applications.id, _id),
+      with: {
         resume: true,
         user: true
       }
@@ -32,14 +34,12 @@ export class ApplicationRepository {
   async findByUserIdAsync(_userId: string) {
     log.info('Finding applications by user ID', { userId: _userId });
 
-    return await prisma.application.findMany({
-      where: { userId: _userId },
-      include: {
+    return await db.query.applications.findMany({
+      where: eq(applications.userId, _userId),
+      with: {
         resume: true
       },
-      orderBy: {
-        appliedAt: 'desc'
-      }
+      orderBy: desc(applications.appliedAt)
     });
   }
 
@@ -49,11 +49,9 @@ export class ApplicationRepository {
   async findByResumeIdAsync(_resumeId: string) {
     log.info('Finding applications by resume ID', { resumeId: _resumeId });
 
-    return await prisma.application.findMany({
-      where: { resumeId: _resumeId },
-      orderBy: {
-        appliedAt: 'desc'
-      }
+    return await db.query.applications.findMany({
+      where: eq(applications.resumeId, _resumeId),
+      orderBy: desc(applications.appliedAt)
     });
   }
 
@@ -63,15 +61,13 @@ export class ApplicationRepository {
   async findByStatusAsync(_status: string) {
     log.info('Finding applications by status', { status: _status });
 
-    return await prisma.application.findMany({
-      where: { status: _status },
-      include: {
+    return await db.query.applications.findMany({
+      where: eq(applications.status, _status),
+      with: {
         resume: true,
         user: true
       },
-      orderBy: {
-        appliedAt: 'desc'
-      }
+      orderBy: desc(applications.appliedAt)
     });
   }
 
@@ -81,13 +77,11 @@ export class ApplicationRepository {
   async existsByResumeAndVacancyAsync(_resumeId: string, _vacancyId: string) {
     log.info('Checking if application exists', { resumeId: _resumeId, vacancyId: _vacancyId });
 
-    const application = await prisma.application.findUnique({
-      where: {
-        resumeId_vacancyId: {
-          resumeId: _resumeId,
-          vacancyId: _vacancyId
-        }
-      }
+    const application = await db.query.applications.findFirst({
+      where: and(
+        eq(applications.resumeId, _resumeId),
+        eq(applications.vacancyId, _vacancyId)
+      )
     });
 
     return application !== null;
@@ -99,14 +93,12 @@ export class ApplicationRepository {
   async findAllAsync() {
     log.info('Finding all applications');
 
-    return await prisma.application.findMany({
-      include: {
+    return await db.query.applications.findMany({
+      with: {
         resume: true,
         user: true
       },
-      orderBy: {
-        appliedAt: 'desc'
-      }
+      orderBy: desc(applications.appliedAt)
     });
   }
 
@@ -126,9 +118,8 @@ export class ApplicationRepository {
       userId: _data.userId
     });
 
-    return await prisma.application.create({
-      data: _data
-    });
+    const [application] = await db.insert(applications).values(_data).returning();
+    return application;
   }
 
   /**
@@ -137,10 +128,13 @@ export class ApplicationRepository {
   async updateStatusAsync(_id: string, _status: string) {
     log.info('Updating application status', { id: _id, status: _status });
 
-    return await prisma.application.update({
-      where: { id: _id },
-      data: { status: _status }
-    });
+    const [application] = await db
+      .update(applications)
+      .set({ status: _status })
+      .where(eq(applications.id, _id))
+      .returning();
+
+    return application;
   }
 
   /**
@@ -149,9 +143,8 @@ export class ApplicationRepository {
   async deleteAsync(_id: string) {
     log.info('Deleting application', { id: _id });
 
-    return await prisma.application.delete({
-      where: { id: _id }
-    });
+    const [application] = await db.delete(applications).where(eq(applications.id, _id)).returning();
+    return application;
   }
 
   /**
@@ -160,16 +153,19 @@ export class ApplicationRepository {
   async getStatsByUserIdAsync(_userId: string) {
     log.info('Getting application stats by user ID', { userId: _userId });
 
-    const stats = await prisma.application.groupBy({
-      by: ['status'],
-      where: { userId: _userId },
-      _count: {
-        status: true
-      }
-    });
+    // Drizzle groupBy with aggregation
+    const stats = await db
+      .select({
+        status: applications.status,
+        count: count(applications.status)
+      })
+      .from(applications)
+      .where(eq(applications.userId, _userId))
+      .groupBy(applications.status);
 
-    return stats.reduce((acc, item) => {
-      acc[item.status] = item._count.status;
+    // Transform to Record<string, number>
+    return stats.reduce((acc: Record<string, number>, item: { status: string; count: number }) => {
+      acc[item.status] = item.count;
       return acc;
     }, {} as Record<string, number>);
   }
