@@ -4,7 +4,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import type { ApiResponse } from '../src/types/api';
-import type { Resume } from '@prisma/client';
+import type { Resume } from '../src/db/schema';
 
 const API_URL = 'http://localhost:3000';
 
