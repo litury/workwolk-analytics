@@ -5,7 +5,7 @@
  * Бизнес-логика работы с пользователями
  */
 
-import { User } from '@prisma/client';
+import type { User } from '../../db/schema';
 import { userRepository } from './userRepository';
 import { createLogger } from '../../utils/logger';
 

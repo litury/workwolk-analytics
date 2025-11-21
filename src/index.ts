@@ -8,10 +8,16 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { createLogger } from './utils/logger';
-import { prisma } from './config/database';
+import { db, closeDatabase } from './db/client';
+import { sql } from 'drizzle-orm';
 import { userRoutes } from './modules/userModule';
 import { resumeRoutes } from './modules/resumeModule';
 import { applicationRoutes } from './modules/applicationModule';
+
+// Add BigInt serialization support for JSON
+(BigInt.prototype as any).toJSON = function() {
+  return this.toString();
+};
 
 const log = createLogger('MainApp');
 
@@ -54,7 +60,7 @@ const app = new Elysia()
   // Database health check
   .get('/health/db', async () => {
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      await db.execute(sql`SELECT 1`);
 
       log.info('Database health check: OK');
 
@@ -127,15 +133,13 @@ log.info('Available endpoints', {
 process.on('SIGINT', async () => {
   log.info('SIGINT received, shutting down gracefully');
 
-  await prisma.$disconnect();
+  await closeDatabase();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   log.info('SIGTERM received, shutting down gracefully');
 
-  await prisma.$disconnect();
+  await closeDatabase();
   process.exit(0);
 });
-
-export default app;
