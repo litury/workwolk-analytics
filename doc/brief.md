@@ -17,7 +17,7 @@
 - **Отказы** — отказ обслуживания (rate limit), отказ очереди (переполнение)
 
 ## Стек
-Backend: TypeScript, NestJS, Prisma, PostgreSQL, Bull/BullMQ, Passport.js
+Backend: TypeScript, ElysiaJS, Drizzle ORM, PostgreSQL, Bull/BullMQ, Passport.js
 Frontend: Vue.js 3, TypeScript, Pinia, Tailwind CSS
 Infra: Docker, npm
 Testing: Vitest

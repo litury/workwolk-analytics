@@ -28,7 +28,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "tests/**/*", "prisma/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules"]
 }
 ```
@@ -109,9 +109,9 @@ try {
 ```typescript
 export class UserRepository {
   async findById(id: string): Promise<User | null> {
-    return await prisma.user.findUnique({
-      where: { id },
-      include: {
+    return await db.query.users.findFirst({
+      where: eq(users.id, id),
+      with: {
         resumes: true,
         applications: true
       }
@@ -124,7 +124,8 @@ export class UserRepository {
     fullName?: string;
     telegramId?: bigint;
   }): Promise<User> {
-    return await prisma.user.create({ data });
+    const [user] = await db.insert(users).values(data).returning();
+    return user;
   }
 }
 ```
@@ -172,24 +173,24 @@ export const userRoutes = new Elysia({ prefix: '/api/users' })
   });
 ```
 
-## Работа с Prisma
+## Работа с Drizzle ORM
 
-Prisma генерирует типы автоматически:
+Drizzle генерирует типы автоматически из TypeScript схемы:
 
 ```typescript
-import { User, Resume, Application } from '@prisma/client';
+import { User, Resume, Application } from '../db/schema';
 
-// Типы доступны из @prisma/client
-const user: User = await prisma.user.findUnique(...);
+// Типы выводятся из схемы через $inferSelect
+const user: User = await db.query.users.findFirst(...);
 
-// Типы для include
+// Типы для relations (with)
 type UserWithResumes = User & {
   resumes: Resume[];
 };
 
-const user: UserWithResumes = await prisma.user.findUnique({
-  where: { id },
-  include: { resumes: true }
+const user: UserWithResumes = await db.query.users.findFirst({
+  where: eq(users.id, id),
+  with: { resumes: true }
 });
 ```
 
@@ -215,8 +216,8 @@ describe('Users API', () => {
 
 Расширения:
 - **TypeScript and JavaScript Language Features** (встроено)
-- **Prisma** - подсветка синтаксиса для `.prisma` файлов
 - **Bun for Visual Studio Code** - поддержка Bun
+- **ESLint** - линтинг кода
 
 Настройки (`.vscode/settings.json`):
 
@@ -284,10 +285,10 @@ function process(data: UserData) { ... } // OK
 2. **Проверяйте на null** перед использованием
 3. **Используйте `unknown` вместо `any`** в catch блоках
 4. **Не используйте `@ts-ignore`** - исправляйте проблему
-5. **Генерируйте Prisma types** после изменений схемы: `bunx prisma generate`
+5. **Используйте $inferSelect** для вывода типов из Drizzle схемы
 
 ## Полезные ссылки
 
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [Bun TypeScript Support](https://bun.sh/docs/runtime/typescript)
-- [Prisma Client Types](https://www.prisma.io/docs/concepts/components/prisma-client/working-with-prismaclient/generating-prisma-client#the-prisma-client-api)
+- [Drizzle ORM TypeScript](https://orm.drizzle.team/docs/goodies#type-api)

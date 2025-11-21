@@ -22,7 +22,7 @@ verb (scope): краткое описание
 feat (auth): добавил OAuth авторизацию HH.ru
 fix (db): исправил миграцию users таблицы
 docs (readme): обновил инструкцию по установке
-chore (deps): обновил Prisma до версии 5.20
+chore (deps): обновил Drizzle ORM до версии 0.36
 refactor (services): вынес общую логику в базовый класс
 ```
 
@@ -58,11 +58,11 @@ style (ui): обновил стили кнопок по Tailwind
 refactor (stores): переписал userStore на Composition API
 ```
 
-### Infrastructure (scope: docker, prisma, config)
+### Infrastructure (scope: docker, drizzle, config)
 
 ```bash
 feat (docker): добавил Redis контейнер для очередей
-fix (prisma): исправил миграцию для таблицы applications
+fix (drizzle): исправил миграцию для таблицы applications
 chore (config): обновил настройки TypeScript
 docs (setup): добавил инструкцию по деплою
 ```

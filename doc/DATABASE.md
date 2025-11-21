@@ -1,6 +1,6 @@
 # Database Guide
 
-Руководство по работе с базой данных PostgreSQL и Prisma ORM в проекте HH Auto Respond EDA.
+Руководство по работе с базой данных PostgreSQL и Drizzle ORM в проекте HH Auto Respond EDA.
 
 ## Схема базы данных
 
@@ -60,13 +60,13 @@ User:     postgres
 Password: postgres
 ```
 
-### Через Prisma Studio
+### Через Drizzle Studio
 
 ```bash
-bun run studio
+bun run db:studio
 ```
 
-Откроется http://localhost:5555 с графическим интерфейсом.
+Откроется графический интерфейс для просмотра и редактирования данных.
 
 ---
 
@@ -109,31 +109,46 @@ ORDER BY a.applied_at DESC;
 
 ## Работа с миграциями
 
-### Изменить схему
+### Создать новую миграцию
 
-1. Отредактировать `prisma/schema.prisma`
-2. Запустить `bun run migrate`
-3. Prisma создаст и применит миграцию
+1. Отредактировать схему в `src/db/schema/`
+2. Сгенерировать SQL миграцию:
+
+```bash
+bun run db:generate
+```
+
+Это создаст SQL файл в `src/db/migrations/`
+
+### Применить миграции
+
+```bash
+bun run db:migrate
+```
+
+### Push схему в БД (для разработки)
+
+Быстрый способ синхронизировать схему с БД без создания миграции:
+
+```bash
+bun run db:push
+```
+
+⚠️ **Внимание:** `db:push` перезапишет БД! Для production используйте `db:migrate`.
 
 ### Пример: добавить поле
 
-```prisma
-model Resume {
+```typescript
+// src/db/schema/resumes.ts
+export const resumes = pgTable('resumes', {
   // ... существующие поля
-  skills Json?  // ← добавили новое поле для хранения навыков
-}
+  skills: text('skills'), // ← добавили новое поле
+});
 ```
 
 ```bash
-bunx prisma migrate dev --name add_skills_to_resume
-# Создаст файл: prisma/migrations/TIMESTAMP_add_skills_to_resume/migration.sql
-```
-
-### Откатить миграцию
-
-```bash
-# Внимание: это удалит данные!
-bun run db:reset
+bun run db:generate  # Создаст миграцию
+bun run db:migrate   # Применит к БД
 ```
 
 ---
@@ -142,11 +157,11 @@ bun run db:reset
 
 ### Что включено
 
-- 2 пользователя Telegram
+- 3 пользователя (2 с Telegram ID, 1 без)
 - 3 резюме (2 с включенными автооткликами)
 - 5 откликов на вакансии
 
-### Перезагрузить seed данные
+### Загрузить seed данные
 
 ```bash
 bun run seed
@@ -157,6 +172,13 @@ bun run seed
 ```bash
 bun run db:reset
 ```
+
+Это выполнит:
+1. Остановку Docker контейнера
+2. Удаление volume
+3. Запуск контейнера
+4. Применение миграций
+5. Загрузку seed данных
 
 ---
 
@@ -184,6 +206,51 @@ bun run backup:list
 
 ---
 
+## Drizzle ORM Примеры
+
+### Простые queries
+
+```typescript
+import { db } from './db/client';
+import { users, resumes } from './db/schema';
+import { eq } from 'drizzle-orm';
+
+// SELECT
+const allUsers = await db.select().from(users);
+
+// WHERE
+const user = await db.select().from(users).where(eq(users.id, userId));
+
+// INSERT
+const [newUser] = await db.insert(users).values({
+  hhUserId: 'hh_123',
+  email: 'user@example.com'
+}).returning();
+
+// UPDATE
+await db.update(users)
+  .set({ fullName: 'New Name' })
+  .where(eq(users.id, userId));
+
+// DELETE
+await db.delete(users).where(eq(users.id, userId));
+```
+
+### Relational Queries (с JOIN)
+
+```typescript
+// Пользователь со всеми резюме и откликами
+const user = await db.query.users.findFirst({
+  where: eq(users.id, userId),
+  with: {
+    resumes: true,
+    applications: true
+  }
+});
+```
+
+---
+
 ## Troubleshooting
 
 ### БД не запускается
@@ -200,7 +267,7 @@ bun run db:down
 bun run db:up
 ```
 
-### Ошибка подключения Prisma
+### Ошибка подключения Drizzle
 
 ```bash
 # Убедитесь, что БД запущена
@@ -215,3 +282,11 @@ cat .env | grep DATABASE_URL
 ```bash
 bun run db:reset
 ```
+
+---
+
+## Полезные ссылки
+
+- [Drizzle ORM Documentation](https://orm.drizzle.team/docs/overview)
+- [Drizzle Kit CLI](https://orm.drizzle.team/kit-docs/overview)
+- [PostgreSQL Tutorial](https://www.postgresqltutorial.com/)

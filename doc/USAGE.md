@@ -10,17 +10,17 @@
 # 1. Поднять БД
 bun run db:up
 
-# 2. Открыть Prisma Studio для просмотра данных
-bun run studio
+# 2. Открыть Drizzle Studio для просмотра данных
+bun run db:studio
 ```
 
-Откроется http://localhost:5555 с графическим интерфейсом.
+Откроется Drizzle Studio с графическим интерфейсом.
 
 ### В течение дня
 
 ```bash
 # Просмотреть данные
-bun run studio
+bun run db:studio
 
 # Сделать бэкап перед экспериментами
 bun run backup
@@ -43,45 +43,46 @@ bun run db:down
 ### Workflow
 
 ```bash
-# 1. Отредактировать prisma/schema.prisma
+# 1. Отредактировать src/db/schema/resumes.ts
 # Например, добавить поле:
-# model Resume {
+# export const resumes = pgTable('resumes', {
 #   ...
-#   skills Json?
-# }
+#   skills: jsonb('skills')
+# });
 
-# 2. Создать миграцию
-bun run migrate
+# 2. Сгенерировать и применить миграцию
+bun run db:generate
+bun run db:migrate
 
-# 3. Проверить изменения через Prisma Studio
-bun run studio
+# 3. Проверить изменения через Drizzle Studio
+bun run db:studio
 ```
 
 ### Пример: добавление нового поля
 
-**Файл prisma/schema.prisma:**
+**Файл src/db/schema/resumes.ts:**
 
-```prisma
-model Resume {
-  id                   String    @id @default(uuid()) @db.Uuid
-  hh_resume_id         String    @unique @db.VarChar(50)
-  title                String    @db.VarChar(200)
-  auto_respond_enabled Boolean   @default(false)
-  skills               Json?     // ← Новое поле
-  user_id              String    @db.Uuid
-  created_at           DateTime  @default(now())
-  updated_at           DateTime  @updatedAt
-
-  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  applications Application[]
-}
+```typescript
+export const resumes = pgTable('resumes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hhResumeId: text('hh_resume_id').notNull().unique(),
+  title: text('title').notNull(),
+  autoRespondEnabled: boolean('auto_respond_enabled').notNull().default(false),
+  skills: jsonb('skills'), // ← Новое поле
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
 ```
 
 **Применить изменения:**
 
 ```bash
-npx prisma migrate dev --name add_skills_to_resume
-# Создаст: prisma/migrations/TIMESTAMP_add_skills_to_resume/migration.sql
+bun run db:generate
+# Создаст SQL миграцию в src/db/migrations/
+
+bun run db:migrate
+# Применит миграцию к базе данных
 ```
 
 ---
@@ -172,7 +173,7 @@ bun run seed
 
 ### Изменить seed данные
 
-Отредактируйте файл `prisma/seed.js` и запустите:
+Отредактируйте файл `src/db/seed.ts` и запустите:
 
 ```bash
 bun run seed
@@ -208,13 +209,13 @@ bun run seed
    ```
 3. Connect
 
-### Prisma Studio (рекомендуется)
+### Drizzle Studio (рекомендуется)
 
 ```bash
-bun run studio
+bun run db:studio
 ```
 
-Откроется http://localhost:5555
+Откроется Drizzle Studio в браузере
 
 **Преимущества:**
 - Графический интерфейс
@@ -276,15 +277,15 @@ bun run clean
 bun run setup
 ```
 
-### Данные не обновляются в Prisma Studio
+### Данные не обновляются в Drizzle Studio
 
 **Решение:**
 
 ```bash
 # Обновить страницу в браузере (F5)
-# Или перезапустить Prisma Studio:
+# Или перезапустить Drizzle Studio:
 # Ctrl+C
-bun run studio
+bun run db:studio
 ```
 
 ---
@@ -298,14 +299,17 @@ bun run studio
 bun run backup
 ```
 
-### После изменения schema.prisma
+### После изменения схемы Drizzle
 
 ```bash
-# 1. Создать миграцию
-bun run migrate
+# 1. Сгенерировать миграцию
+bun run db:generate
 
-# 2. Проверить в Prisma Studio
-bun run studio
+# 2. Применить миграцию
+bun run db:migrate
+
+# 3. Проверить в Drizzle Studio
+bun run db:studio
 ```
 
 ### Регулярные бэкапы
@@ -323,10 +327,10 @@ rm backups/backup_OLD_TIMESTAMP.sql
 
 ```bash
 # После git pull с новыми миграциями:
-bun run migrate
+bun run db:migrate
 
-# Проверить актуальность схемы:
-npx prisma validate
+# Или быстрая синхронизация схемы:
+bun run db:push
 ```
 
 ---
@@ -373,6 +377,6 @@ ORDER BY date DESC;
 ```
 
 Запускайте через:
-- Prisma Studio (вкладка "Query")
+- Drizzle Studio
 - DBeaver / TablePlus
 - `docker exec -it hh-auto-respond-postgres psql -U postgres -d hh_auto_respond_dev`

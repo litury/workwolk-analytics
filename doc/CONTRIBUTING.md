@@ -8,8 +8,8 @@
 # Установка и запуск
 bun run setup
 
-# Открыть Prisma Studio для просмотра данных
-bun run studio
+# Открыть Drizzle Studio для просмотра данных
+bun run db:studio
 ```
 
 ## Как внести изменения

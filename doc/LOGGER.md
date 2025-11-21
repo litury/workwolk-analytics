@@ -93,7 +93,7 @@ const log = createLogger('UserRepository');
 async findById(id: string) {
   log.info('Finding user by ID', { id });
 
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await db.query.users.findFirst({ where: eq(users.id, id) });
 
   if (!user) {
     log.warn('User not found', { id });

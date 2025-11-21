@@ -32,11 +32,11 @@ cp .env.example .env
 # 3. Запустить всё
 bun run setup
 
-# 4. Открыть Prisma Studio
-bun run studio
+# 4. Открыть Drizzle Studio
+bun run db:studio
 ```
 
-Откроется http://localhost:5555 с GUI для работы с БД.
+Откроется Drizzle Studio с GUI для работы с БД.
 
 ---
 
@@ -62,8 +62,9 @@ bun install
 ```
 
 **Что устанавливается:**
-- `@prisma/client` - Prisma ORM клиент
-- `prisma` - Prisma CLI (dev dependency)
+- `drizzle-orm` - Drizzle ORM клиент
+- `drizzle-kit` - Drizzle Kit CLI (dev dependency)
+- `postgres` - PostgreSQL драйвер (postgres.js)
 
 ### Шаг 3: Настроить переменные окружения
 
@@ -110,13 +111,13 @@ bun run db:status
 ### Шаг 5: Применить миграции
 
 ```bash
-bun run migrate
+bun run db:push
 ```
 
 **Что происходит:**
-- Prisma создаст таблицы в БД
-- Применит миграцию `20251031092934_initial`
-- Сгенерирует Prisma Client
+- Drizzle синхронизирует TypeScript схему с БД
+- Создаст таблицы: users, resumes, applications
+- Применит индексы и ограничения
 
 **Проверка:**
 ```bash
@@ -137,10 +138,10 @@ bun run seed
 
 **Проверка:**
 ```bash
-bun run studio
+bun run db:studio
 ```
 
-Откроется http://localhost:5555 — проверьте, что данные загружены.
+Откроется Drizzle Studio — проверьте, что данные загружены.
 
 ---
 
@@ -197,15 +198,15 @@ docker exec -it hh-auto-respond-postgres psql -U postgres -d hh_auto_respond_dev
      2
 ```
 
-### Проверка 5: Prisma Studio
+### Проверка 5: Drizzle Studio
 
 ```bash
-bun run studio
+bun run db:studio
 ```
 
-Откройте http://localhost:5555 и убедитесь, что:
+Откройте Drizzle Studio и убедитесь, что:
 - Видны 3 таблицы (users, resumes, applications)
-- В таблице users есть 2 записи
+- В таблице users есть 3 записи
 - В таблице resumes есть 3 записи
 - В таблице applications есть 5 записей
 
@@ -216,9 +217,9 @@ bun run studio
 После установки у вас будет:
 
 - ✅ PostgreSQL 16 в Docker контейнере
-- ✅ Prisma ORM (схема + миграции)
-- ✅ Моковые данные (2 пользователя, 3 резюме, 5 откликов)
-- ✅ Prisma Studio (GUI для БД)
+- ✅ Drizzle ORM (схема TypeScript + миграции)
+- ✅ Моковые данные (3 пользователя, 3 резюме, 5 откликов)
+- ✅ Drizzle Studio (GUI для БД)
 - ✅ Скрипты бэкапа/восстановления
 - ✅ Команды для управления проектом
 
@@ -267,7 +268,7 @@ brew services stop postgresql
 
 **Проблема:**
 ```
-Error: Cannot find module '@prisma/client'
+Error: Cannot find module 'drizzle-orm'
 ```
 
 **Решение:**
@@ -301,7 +302,7 @@ cat .env | grep DATABASE_URL
 bun run db:down
 bun run db:up
 sleep 3
-bun run migrate
+bun run db:push
 ```
 
 ### Ошибка: Seed не загружается
@@ -331,14 +332,14 @@ bun run clean
 bun run setup
 
 # 3. Проверить
-bun run studio
+bun run db:studio
 ```
 
 **Внимание:** Это удалит:
 - Docker контейнер
 - Docker volume с данными
 - node_modules и bun.lockb
-- Prisma миграции (будут пересозданы)
+- SQL миграции (будут пересозданы)
 
 ---
 
@@ -353,15 +354,15 @@ bun run studio
 
 2. **Попробуйте основные команды:**
    ```bash
-   bun run studio    # Открыть GUI для БД
-   bun run backup    # Создать бэкап
-   bun run db:logs   # Посмотреть логи
+   bun run db:studio    # Открыть GUI для БД
+   bun run backup       # Создать бэкап
+   bun run db:logs      # Посмотреть логи
    ```
 
 3. **Изучите схему БД:**
-   - Откройте `prisma/schema.prisma`
-   - Посмотрите модели User, Resume, Application
-   - Изучите связи между таблицами
+   - Откройте файлы в `src/db/schema/`
+   - Посмотрите схемы users.ts, resumes.ts, applications.ts
+   - Изучите relations.ts для связей между таблицами
 
 4. **Прочитайте roadmap:**
    - Откройте [doc/brief.md](./brief.md)
@@ -391,13 +392,13 @@ bun run db:up
 sleep 3
 
 # 6. Применить миграции
-bun run migrate
+bun run db:push
 
 # 7. Загрузить seed данные
 bun run seed
 
-# 8. Открыть Prisma Studio
-bun run studio
+# 8. Открыть Drizzle Studio
+bun run db:studio
 ```
 
 ---
@@ -429,7 +430,7 @@ git clone https://github.com/litury/hh-auto-respond-eda.git
 cd hh-auto-respond-eda
 copy .env.example .env
 bun run setup
-bun run studio
+bun run db:studio
 ```
 
 ---
@@ -443,10 +444,10 @@ bun run studio
 bun install
 
 # 2. Применить новые миграции (если изменилась схема)
-bun run migrate
+bun run db:push
 
 # 3. Проверить всё работает
-bun run studio
+bun run db:studio
 ```
 
 ---

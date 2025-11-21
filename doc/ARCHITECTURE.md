@@ -20,13 +20,17 @@ hh-auto-respond-eda/
 ├── docker/
 │   └── docker-compose.yml       # PostgreSQL контейнер
 │
-├── prisma/
-│   ├── schema.prisma            # Схема БД (User, Resume, Application)
-│   ├── migrations/              # История миграций
-│   │   ├── 20251031092934_initial/
-│   │   │   └── migration.sql
-│   │   └── migration_lock.toml
-│   └── seed.js                  # Моковые данные (2 пользователя, 3 резюме, 5 откликов)
+├── src/
+│   ├── db/
+│   │   ├── schema/              # TypeScript схемы БД
+│   │   │   ├── users.ts         # User table schema
+│   │   │   ├── resumes.ts       # Resume table schema
+│   │   │   ├── applications.ts  # Application table schema
+│   │   │   ├── relations.ts     # Relations between tables
+│   │   │   └── index.ts         # Schema exports
+│   │   ├── migrations/          # SQL миграции (генерируются автоматически)
+│   │   ├── client.ts            # Drizzle client singleton
+│   │   └── seed.ts              # Моковые данные (3 пользователя, 3 резюме, 5 откликов)
 │
 ├── backups/                     # SQL бэкапы
 │   ├── .gitkeep
@@ -94,7 +98,7 @@ hh-auto-respond-eda/
 
 **Backend:**
 - PostgreSQL 16 - основная БД
-- Prisma ORM - схема и миграции
+- Drizzle ORM - Schema-as-Code (TypeScript)
 - Docker Compose - инфраструктура
 
 **DevOps:**
@@ -110,8 +114,8 @@ hh-auto-respond-eda/
 - Tailwind CSS
 
 **Backend:**
-- NestJS + TypeScript
-- Prisma ORM
+- ElysiaJS + Bun + TypeScript
+- Drizzle ORM
 - Passport.js (OAuth HH.ru)
 - Bull/BullMQ (очереди на Redis)
 
@@ -147,24 +151,24 @@ hh-auto-respond-eda/
 ### Ключевые решения
 
 **1. UUID вместо SERIAL:**
-```prisma
-id String @id @default(uuid()) @db.Uuid
+```typescript
+id: uuid('id').primaryKey().defaultRandom()
 ```
 - Распределенная система (будущее)
 - Безопасность (нельзя угадать ID)
 - Возможность генерации ID на клиенте
 
 **2. Cascading deletes:**
-```prisma
-user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+```typescript
+userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' })
 ```
 - При удалении пользователя → автоматическое удаление резюме и откликов
 - Целостность данных
 
 **3. Timestamps:**
-```prisma
-created_at DateTime @default(now())
-updated_at DateTime @updatedAt
+```typescript
+createdAt: timestamp('created_at').defaultNow().notNull(),
+updatedAt: timestamp('updated_at').defaultNow().notNull()
 ```
 - Аудит изменений
 - Аналитика активности
@@ -191,7 +195,7 @@ interface UserRepository {
 @Injectable()
 export class ApplicationService {
   constructor(
-    private prisma: PrismaService,
+    private db: DrizzleDatabase,
     private hhApi: HHApiService,
     @InjectQueue('application.send') private queue: Queue,
   ) {}
@@ -332,7 +336,7 @@ application:viewed # Работодатель посмотрел отклик
 ### Integration Tests
 
 - API endpoints (Supertest)
-- Database queries (Prisma)
+- Database queries (Drizzle ORM)
 - Queue processing (Bull/BullMQ)
 
 ### E2E Tests
@@ -365,7 +369,7 @@ application:viewed # Работодатель посмотрел отклик
 ## Development Principles
 
 1. **Spec-First Development** - brief.md пишется перед кодом
-2. **Database-First** - схема Prisma как source of truth
+2. **Schema-as-Code** - TypeScript схема Drizzle как source of truth
 3. **Event-Driven** - слабая связанность через очереди
 4. **12-Factor App** - конфигурация через environment
 5. **Minimal Viable Product** - только необходимый функционал

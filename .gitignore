@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Prisma
+# Environment
 .env
 
 # Backups (не коммитим SQL файлы, слишком большие)

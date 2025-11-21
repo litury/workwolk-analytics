@@ -30,29 +30,33 @@ bun run db:down
 
 ---
 
-## Prisma
+## Drizzle ORM
 
 | Команда | Описание |
 |---------|----------|
-| `bun run migrate` | Применить миграции (создаёт новую если схема изменилась) |
+| `bun run db:generate` | Сгенерировать SQL миграции из TypeScript схемы |
+| `bun run db:migrate` | Применить миграции к базе данных |
+| `bun run db:push` | Синхронизировать схему с БД (для разработки) |
+| `bun run db:studio` | Открыть Drizzle Studio (GUI для БД) |
 | `bun run seed` | Загрузить моковые данные |
-| `bun run studio` | Открыть Prisma Studio (GUI для БД) |
-| `bun run generate` | Сгенерировать Prisma Client |
 
 ### Примеры использования
 
 ```bash
-# Создать и применить миграцию после изменения schema.prisma
-bun run migrate
+# Сгенерировать миграции после изменения схемы в src/db/schema/
+bun run db:generate
+
+# Применить миграции к БД
+bun run db:migrate
+
+# Быстрая синхронизация схемы (для разработки)
+bun run db:push
 
 # Открыть графический интерфейс БД
-bun run studio
+bun run db:studio
 
 # Перезагрузить seed данные
 bun run seed
-
-# Сгенерировать Prisma Client (после изменения схемы)
-bun run generate
 ```
 
 ---
@@ -107,8 +111,8 @@ bun run clean
 # 1. Поднять БД
 bun run db:up
 
-# 2. Открыть Prisma Studio
-bun run studio
+# 2. Открыть Drizzle Studio
+bun run db:studio
 
 # 3. (Работа с кодом...)
 
@@ -119,13 +123,16 @@ bun run db:down
 ### Изменение схемы БД
 
 ```bash
-# 1. Отредактировать prisma/schema.prisma
+# 1. Отредактировать файлы в src/db/schema/
 
-# 2. Создать и применить миграцию
-bun run migrate
+# 2. Сгенерировать SQL миграцию
+bun run db:generate
 
-# 3. Проверить в Prisma Studio
-bun run studio
+# 3. Применить миграцию
+bun run db:migrate
+
+# 4. Проверить в Drizzle Studio
+bun run db:studio
 ```
 
 ### Работа с бэкапами
@@ -171,25 +178,28 @@ docker-compose -f docker/docker-compose.yml down -v
 
 ---
 
-## Prisma CLI (прямые команды)
+## Drizzle Kit CLI (прямые команды)
 
-Если нужно работать напрямую с Prisma CLI:
+Если нужно работать напрямую с Drizzle Kit CLI:
 
 ```bash
-# Создать миграцию с именем
-bunx prisma migrate dev --name add_new_field
+# Сгенерировать миграции
+bunx drizzle-kit generate
 
-# Применить миграции в production
-bunx prisma migrate deploy
+# Применить миграции
+bunx drizzle-kit migrate
 
-# Сбросить БД (удалит все данные!)
-bunx prisma migrate reset
+# Синхронизировать схему (для разработки)
+bunx drizzle-kit push
 
-# Валидация схемы
-bunx prisma validate
+# Открыть Drizzle Studio
+bunx drizzle-kit studio
 
-# Форматирование schema.prisma
-bunx prisma format
+# Проверить схему
+bunx drizzle-kit check
+
+# Удалить таблицы (осторожно!)
+bunx drizzle-kit drop
 ```
 
 ---
