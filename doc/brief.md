@@ -17,16 +17,19 @@
 - **Отказы** — отказ обслуживания (rate limit), отказ очереди (переполнение)
 
 ## Стек
-Backend: TypeScript, ElysiaJS, Drizzle ORM, PostgreSQL, Bull/BullMQ, Passport.js
-Frontend: Vue.js 3, TypeScript, Pinia, Tailwind CSS
-Infra: Docker, npm
-Testing: Vitest
+Backend: Bun, ElysiaJS, TypeScript, Drizzle ORM, PostgreSQL, Pino
+Frontend: Vue.js 3, TypeScript, Pinia, Tailwind CSS (планируется)
+Infra: Docker, Bun scripts
+Testing: Bun test (Jest-совместимый)
+OAuth: Native fetch (без Passport.js)
 
 ## Источники данных
 - HH.ru API: резюме, вакансии, отклики (OAuth scopes: write_negotiations, read_resumes)
 - Rate Limits: 60 req/min, ~200 applications/day
 
 ## Модель разработки
-Этап 1: Монолит Vue.js + NestJS (OAuth, очереди Bull/BullMQ)
-Этап 2: Telegram Mini App (~100 строк кода)
-Этап 3: Микросервисы (Kafka, распределенная обработка)
+Этап 0: ✅ Слой базы данных (PostgreSQL + Drizzle ORM)
+Этап 1: ✅ HH.ru API интеграция (OAuth 2.0, публичные endpoints, интеграционные тесты)
+Этап 2: Frontend Vue.js 3 + очереди Bull/BullMQ
+Этап 3: Telegram Mini App
+Этап 4: Микросервисы (Kafka, распределенная обработка)

@@ -56,10 +56,16 @@ bun run db:studio
 
 ## Статус разработки
 
-**Текущий этап:** Слой базы данных завершён (PostgreSQL + Drizzle ORM)
+**Текущий этап:** HH.ru API интеграция
+
+**Выполнено:**
+- ✅ Слой базы данных (PostgreSQL + Drizzle ORM)
+- ✅ HH.ru API клиент (OAuth 2.0 + публичные endpoints)
+- ✅ Интеграционные тесты API (10 тестов)
+- ✅ Типизация ответов HH.ru API
 
 **Следующие шаги:**
-1. Backend API (NestJS + OAuth + интеграция с HH.ru)
+1. Деплой на хостинг (для OAuth callback)
 2. Frontend (Vue.js 3 + Pinia + Tailwind)
 3. Адаптация под Telegram Mini App
 

@@ -21,6 +21,9 @@ hh-auto-respond-eda/
 │   └── docker-compose.yml       # PostgreSQL контейнер
 │
 ├── src/
+│   ├── config/
+│   │   └── env.ts               # Конфигурация окружения
+│   │
 │   ├── db/
 │   │   ├── schema/              # TypeScript схемы БД
 │   │   │   ├── users.ts         # User table schema
@@ -30,7 +33,23 @@ hh-auto-respond-eda/
 │   │   │   └── index.ts         # Schema exports
 │   │   ├── migrations/          # SQL миграции (генерируются автоматически)
 │   │   ├── client.ts            # Drizzle client singleton
-│   │   └── seed.ts              # Моковые данные (3 пользователя, 3 резюме, 5 откликов)
+│   │   └── seed.ts              # Моковые данные
+│   │
+│   ├── modules/
+│   │   ├── authModule/          # HH.ru OAuth и API клиент
+│   │   │   ├── authRoutes.ts    # OAuth endpoints
+│   │   │   ├── hhClient.ts      # HH.ru API клиент
+│   │   │   ├── parts/
+│   │   │   │   └── hhTypes.ts   # Типы HH.ru API
+│   │   │   └── index.ts
+│   │   ├── userModule/          # Пользователи
+│   │   ├── resumeModule/        # Резюме
+│   │   └── applicationModule/   # Отклики
+│   │
+│   ├── utils/
+│   │   └── logger.ts            # Pino logger
+│   │
+│   └── index.ts                 # Entry point (ElysiaJS server)
 │
 ├── backups/                     # SQL бэкапы
 │   ├── .gitkeep
@@ -94,18 +113,25 @@ hh-auto-respond-eda/
 
 ## Технологический стек
 
-### Текущий статус (Этап 0: Database Layer)
+### Текущий статус (Этап 1: HH.ru API интеграция)
 
 **Backend:**
+- Bun + ElysiaJS - HTTP сервер
 - PostgreSQL 16 - основная БД
 - Drizzle ORM - Schema-as-Code (TypeScript)
+- Pino - структурированное логирование
+- Native OAuth 2.0 - авторизация через HH.ru (без Passport.js)
 - Docker Compose - инфраструктура
+
+**Тестирование:**
+- Bun test - встроенный тестовый раннер
+- Интеграционные тесты HH.ru API (10 тестов)
 
 **DevOps:**
 - bun scripts - автоматизация
 - Бэкапы/восстановление через pg_dump
 
-### Планируемый стек (Этап 1: MVP)
+### Планируемый стек (Этап 2: Frontend)
 
 **Frontend:**
 - Vue.js 3 + Composition API
@@ -113,10 +139,7 @@ hh-auto-respond-eda/
 - Pinia (state management)
 - Tailwind CSS
 
-**Backend:**
-- ElysiaJS + Bun + TypeScript
-- Drizzle ORM
-- Passport.js (OAuth HH.ru)
+**Backend (расширение):**
 - Bull/BullMQ (очереди на Redis)
 
 **Deployment:**
@@ -177,45 +200,55 @@ updatedAt: timestamp('updated_at').defaultNow().notNull()
 
 ## Design Patterns
 
-### Repository Pattern (планируется)
+### Repository Pattern (реализовано)
 
 ```typescript
-// Абстракция доступа к данным
-interface UserRepository {
-  findById(id: string): Promise<User>
-  findByTelegramId(telegramId: number): Promise<User>
-  create(data: CreateUserDto): Promise<User>
-  update(id: string, data: UpdateUserDto): Promise<User>
+// src/modules/userModule/userRepository.ts
+export class UserRepository {
+  async findByIdAsync(id: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0] ?? null;
+  }
+
+  async findByHhUserIdAsync(hhUserId: string): Promise<User | null> {
+    const result = await db.select().from(users).where(eq(users.hhUserId, hhUserId));
+    return result[0] ?? null;
+  }
 }
 ```
 
-### Dependency Injection (NestJS)
+### Service Layer (реализовано)
 
 ```typescript
-@Injectable()
-export class ApplicationService {
-  constructor(
-    private db: DrizzleDatabase,
-    private hhApi: HHApiService,
-    @InjectQueue('application.send') private queue: Queue,
-  ) {}
-}
+// src/modules/authModule/hhClient.ts
+export const hhClient = {
+  // Публичные методы (без авторизации)
+  searchVacancies: async (params: HHVacancySearchParams): Promise<HHVacanciesResponse> => {
+    const res = await fetch(`${HH_API}/vacancies?${searchParams}`);
+    return res.json();
+  },
+
+  // OAuth методы
+  getAuthUrl: (state?: string): string => { ... },
+  exchangeCode: async (code: string): Promise<HHTokens | HHTokenError> => { ... },
+  refreshToken: async (refreshToken: string): Promise<HHTokens | HHTokenError> => { ... },
+
+  // Приватные методы (требуют access_token)
+  getMyResumes: async (accessToken: string): Promise<HHResumesResponse> => { ... },
+  getMe: async (accessToken: string): Promise<HHUser> => { ... },
+};
 ```
 
-### Event-Driven Processing (Bull/BullMQ)
+### Event-Driven Processing (планируется: Bull/BullMQ)
 
 ```typescript
 // Producer
-await this.queue.add('send-application', {
-  resumeId,
-  vacancyId,
-})
+await queue.add('send-application', { resumeId, vacancyId });
 
 // Consumer
-@Process('send-application')
-async handleApplication(job: Job) {
+queue.process('send-application', async (job) => {
   // Обработка отклика
-}
+});
 ```
 
 ---
@@ -246,16 +279,42 @@ async handleApplication(job: Job) {
 
 ---
 
-## API Design (Планируемое)
+## API Design (Реализовано)
 
 ### REST Endpoints
 
+**Auth (HH.ru OAuth):**
 ```
-POST   /api/auth/hh/callback     # OAuth callback HH.ru
-GET    /api/resumes               # Список резюме пользователя
-PATCH  /api/resumes/:id           # Включить/выключить автоотклик
-GET    /api/applications          # История откликов
-GET    /api/stats                 # Статистика пользователя
+GET    /api/auth/hh/login        # Редирект на HH.ru OAuth
+GET    /api/auth/hh/callback     # OAuth callback от HH.ru
+POST   /api/auth/hh/refresh      # Обновление токенов
+```
+
+**Users:**
+```
+GET    /api/users                # Список пользователей
+GET    /api/users/:id            # Пользователь по ID
+POST   /api/users                # Создать пользователя
+DELETE /api/users/:id            # Удалить пользователя
+```
+
+**Resumes:**
+```
+GET    /api/resumes              # Список резюме
+GET    /api/resumes/:id          # Резюме по ID
+GET    /api/resumes/user/:userId # Резюме пользователя
+POST   /api/resumes              # Создать резюме
+PATCH  /api/resumes/:id/auto-respond  # Вкл/выкл автоотклик
+DELETE /api/resumes/:id          # Удалить резюме
+```
+
+**Applications:**
+```
+GET    /api/applications         # Список откликов
+GET    /api/applications/:id     # Отклик по ID
+POST   /api/applications         # Создать отклик
+PATCH  /api/applications/:id/status  # Обновить статус
+DELETE /api/applications/:id     # Удалить отклик
 ```
 
 ### WebSocket Events
@@ -325,24 +384,42 @@ application:viewed # Работодатель посмотрел отклик
 
 ---
 
-## Testing Strategy (Планируется)
+## Testing Strategy (Реализовано)
 
-### Unit Tests (Vitest)
+### Bun Test Runner
 
-- Services: бизнес-логика
-- Transformers: фильтрация вакансий
-- Utilities: вспомогательные функции
+- Встроенный в Bun, Jest-совместимый API
+- В 10-100 раз быстрее Jest
+- Нативная поддержка TypeScript
 
-### Integration Tests
+### Интеграционные тесты (10 тестов)
 
-- API endpoints (Supertest)
-- Database queries (Drizzle ORM)
-- Queue processing (Bull/BullMQ)
+**Файл:** `tests/hh.api.test.ts`
 
-### E2E Tests
+| Группа | Тесты |
+|--------|-------|
+| Доступность | API HH.ru отвечает 200 |
+| Структура вакансии | Обязательные поля, зарплата, работодатель |
+| Поиск | Базовый поиск, фильтрация, пагинация |
+| Детали вакансии | Получение по ID, description, key_skills |
+| Справочники | Dictionaries (experience, employment) |
 
-- User flows: auth → настройка → автоотклик
-- OAuth flow с HH.ru
+### E2E тесты (API endpoints)
+
+**Файлы:** `tests/api.*.test.ts`
+
+- Health check endpoints
+- Users API
+- Resumes API
+- Applications API
+
+### Запуск тестов
+
+```bash
+bun test                    # Все тесты
+bun test tests/hh.api.test.ts  # Только HH.ru API
+bun test --watch            # Watch режим
+```
 
 ---
 
