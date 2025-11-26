@@ -13,6 +13,7 @@ import { sql } from 'drizzle-orm';
 import { userRoutes } from './modules/userModule';
 import { resumeRoutes } from './modules/resumeModule';
 import { applicationRoutes } from './modules/applicationModule';
+import { authRoutes } from './modules/authModule';
 
 // Add BigInt serialization support for JSON
 (BigInt.prototype as any).toJSON = function() {
@@ -35,14 +36,14 @@ const app = new Elysia()
 
   // Error handling middleware
   .onError(({ error }) => {
-    log.error('Error occurred', {
-      message: error.message,
-      stack: error.stack
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+
+    log.error('Error occurred', { message, stack });
 
     return {
       error: true,
-      message: error.message
+      message
     };
   })
 
@@ -84,6 +85,7 @@ const app = new Elysia()
   .use(userRoutes)
   .use(resumeRoutes)
   .use(applicationRoutes)
+  .use(authRoutes)
 
   // Start server
   .listen(process.env.PORT || 3000);
