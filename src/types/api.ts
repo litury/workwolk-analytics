@@ -2,12 +2,12 @@
  * Общие типы для API
  */
 
-import type { User, Resume, Application } from '../db/schema';
+import type { Source, Vacancy } from '../db/schema';
 
 /**
  * Стандартная обертка для ответа API
  */
-export interface ApiResponse<T> {
+export interface IApiResponse<T> {
   success: boolean;
   data: T;
   error?: string;
@@ -17,7 +17,7 @@ export interface ApiResponse<T> {
 /**
  * Ответ проверки работоспособности сервиса
  */
-export interface HealthCheckResponse {
+export interface IHealthCheckResponse {
   status: string;
   service: string;
   timestamp: string;
@@ -26,38 +26,23 @@ export interface HealthCheckResponse {
 /**
  * Ответ проверки подключения к базе данных
  */
-export interface DbHealthResponse {
+export interface IDbHealthResponse {
   status: string;
   database: string;
 }
 
 /**
- * Пользователь со связанными данными
+ * Вакансия с данными источника
  */
-export type UserWithRelations = User & {
-  resumes: Resume[];
-  applications: Application[];
+export type VacancyWithSource = Vacancy & {
+  source: Source;
 };
 
 /**
- * Резюме со связанными данными
+ * Пагинация
  */
-export type ResumeWithRelations = Resume & {
-  user: User;
-  applications: Application[];
-};
-
-/**
- * Отклик со связанными данными
- */
-export type ApplicationWithRelations = Application & {
-  resume: Resume;
-  user: User;
-};
-
-/**
- * Статистика откликов по статусам
- */
-export interface ApplicationStats {
-  [status: string]: number;
+export interface IPagination {
+  total: number;
+  limit: number;
+  offset: number;
 }
