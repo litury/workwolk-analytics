@@ -1,31 +1,18 @@
+/**
+ * Связи между таблицами
+ */
+
 import { relations } from 'drizzle-orm';
-import { users } from './users';
-import { resumes } from './resumes';
-import { applications } from './applications';
+import { sources } from './sources';
+import { vacancies } from './vacancies';
 
-// User relations
-export const usersRelations = relations(users, ({ many }) => ({
-  resumes: many(resumes),
-  applications: many(applications)
+export const sourcesRelations = relations(sources, ({ many }) => ({
+  vacancies: many(vacancies),
 }));
 
-// Resume relations
-export const resumesRelations = relations(resumes, ({ one, many }) => ({
-  user: one(users, {
-    fields: [resumes.userId],
-    references: [users.id]
+export const vacanciesRelations = relations(vacancies, ({ one }) => ({
+  source: one(sources, {
+    fields: [vacancies.sourceId],
+    references: [sources.id],
   }),
-  applications: many(applications)
-}));
-
-// Application relations
-export const applicationsRelations = relations(applications, ({ one }) => ({
-  resume: one(resumes, {
-    fields: [applications.resumeId],
-    references: [resumes.id]
-  }),
-  user: one(users, {
-    fields: [applications.userId],
-    references: [users.id]
-  })
 }));

@@ -1,7 +1,6 @@
 // Export all tables
-export * from './users';
-export * from './resumes';
-export * from './applications';
+export * from './sources';
+export * from './vacancies';
 
 // Export relations
 export * from './relations';
