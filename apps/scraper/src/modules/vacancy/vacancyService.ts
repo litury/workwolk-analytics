@@ -7,6 +7,9 @@ import { db } from '../../shared/db/client';
 import { sources, vacancies, type NewVacancy, type Vacancy, type Source } from '../../shared/db/schema';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import { scrapeVacanciesAsync, type ISearchParams, type IScrapedVacancy } from '../hh';
+import { createLogger } from '../../shared/utils/logger';
+
+const log = createLogger('VacancyService');
 
 // Интерфейсы
 export interface IVacancyFilters {
@@ -170,6 +173,7 @@ export async function saveVacanciesAsync(
  * Запустить скрапинг и сохранить результаты
  */
 export async function scrapeAndSaveAsync(_params: ISearchParams): Promise<IScrapeResult> {
+  log.info('scrapeAndSaveAsync called', { params: _params });
   const result: IScrapeResult = {
     total: 0,
     saved: 0,
@@ -178,6 +182,7 @@ export async function scrapeAndSaveAsync(_params: ISearchParams): Promise<IScrap
   };
 
   // Получаем источник
+  log.info('Getting source hh from database...');
   const source = await getSourceByNameAsync('hh');
   if (!source) {
     result.errors.push('Источник hh не найден');
@@ -186,7 +191,9 @@ export async function scrapeAndSaveAsync(_params: ISearchParams): Promise<IScrap
 
   try {
     // Скрапим вакансии
+    log.info('Starting scraping...', { params: _params });
     const scraped = await scrapeVacanciesAsync(_params);
+    log.info('Scraping completed', { count: scraped.length });
     result.total = scraped.length;
 
     if (scraped.length > 0) {
