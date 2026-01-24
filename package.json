@@ -1,27 +1,16 @@
 {
-  "name": "workwolk",
+  "name": "workwolk-analytics",
   "version": "0.2.0",
+  "private": true,
   "description": "WorkWolk - агрегатор данных IT рынка для аналитики",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "db:generate": "bunx drizzle-kit generate",
-    "db:push": "bunx drizzle-kit push",
-    "db:studio": "bunx drizzle-kit studio",
-    "seed": "bun run src/db/seed.ts",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@elysiajs/cors": "^1.4.0",
-    "drizzle-orm": "^0.36.0",
-    "elysia": "^1.4.16",
-    "pino": "^9.0.0",
-    "pino-pretty": "^13.0.0",
-    "playwright": "^1.57.0",
-    "postgres": "^3.4.4"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "drizzle-kit": "^0.28.0"
+    "dev:scraper": "bun run --cwd apps/scraper dev",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build:web": "bun run --cwd apps/web build",
+    "db:push": "bun run --cwd apps/scraper db:push",
+    "db:studio": "bun run --cwd apps/scraper db:studio",
+    "test": "bun run --cwd apps/scraper test",
+    "typecheck": "bun run --cwd apps/scraper typecheck"
   }
 }
