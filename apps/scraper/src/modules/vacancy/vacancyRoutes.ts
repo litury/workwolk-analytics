@@ -10,7 +10,7 @@ import {
   exportVacanciesJsonAsync,
   exportVacanciesCsvAsync,
 } from './vacancyService';
-import { closeBrowserAsync } from '../hh';
+import { closeStagehandAsync } from '../hh';
 
 export const vacancyRoutes = new Elysia({ prefix: '/api/vacancies' })
 
@@ -95,5 +95,5 @@ export const vacancyRoutes = new Elysia({ prefix: '/api/vacancies' })
 
   // Закрытие браузера при завершении
   .onStop(async () => {
-    await closeBrowserAsync();
+    await closeStagehandAsync();
   });

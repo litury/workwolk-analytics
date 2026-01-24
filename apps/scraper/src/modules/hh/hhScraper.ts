@@ -1,19 +1,12 @@
 /**
  * Скрапер вакансий с HH.ru
- * Использует Playwright для парсинга страниц поиска
+ * Использует Stagehand для AI-powered парсинга страниц поиска
  */
 
-import { chromium, type Browser, type Page } from 'playwright';
-
-// Селекторы HH.ru (data-qa атрибуты для стабильности)
-const HH_SELECTORS = {
-  vacancyCard: '[data-qa="vacancy-serp__vacancy"]',
-  title: '[data-qa="serp-item__title"]',
-  company: '[data-qa="vacancy-serp__vacancy-employer"]',
-  salary: '[data-qa="vacancy-serp__vacancy-compensation"]',
-  location: '[data-qa="vacancy-serp__vacancy-address"]',
-  nextPage: '[data-qa="pager-next"]',
-};
+import { Stagehand } from '@browserbasehq/stagehand';
+import { z } from 'zod';
+import { env } from '../../config/env.js';
+import { createLogger } from '../../shared/utils/logger';
 
 export interface ISearchParams {
   query?: string;
@@ -40,31 +33,53 @@ export interface IScrapedVacancy {
   publishedAt?: Date;
 }
 
-let p_browser: Browser | null = null;
+// Схема для одной вакансии
+const VacancySchema = z.object({
+  externalId: z.string().describe('Vacancy ID extracted from URL path (e.g., /vacancy/123456 → "123456")'),
+  title: z.string().describe('Job title'),
+  company: z.string().describe('Company name'),
+  url: z.string().url().describe('Full URL to the vacancy page'),
+  salaryText: z.string().optional().describe('Salary information as displayed (e.g., "от 100 000 до 150 000 руб.")'),
+  location: z.string().optional().describe('Job location (city or remote indicator)'),
+});
 
-// Получить или создать браузер
-async function getBrowserAsync(): Promise<Browser> {
-  if (!p_browser) {
-    p_browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+// Схема для страницы с вакансиями
+const VacanciesPageSchema = z.object({
+  vacancies: z.array(VacancySchema).describe('Array of all job vacancies visible on current page'),
+  hasNextPage: z.boolean().describe('True if there is a "Next page" or pagination button available'),
+});
+
+type ExtractedPage = z.infer<typeof VacanciesPageSchema>;
+
+const log = createLogger('HHScraper');
+let stagehand: Stagehand | null = null;
+
+// Получить или создать Stagehand
+async function getStagehandAsync(): Promise<Stagehand> {
+  if (!stagehand) {
+    log.info('Initializing Stagehand browser...');
+    stagehand = new Stagehand({
+      env: 'LOCAL', // Локальный браузер без Browserbase
+      model: 'google/gemini-2.5-flash', // v3 использует 'model' вместо 'modelName'
+      localBrowserLaunchOptions: {
+        headless: env.headless,
+      },
+      verbose: 1, // Логирование для отладки
+      domSettleTimeout: 3000, // Ждем загрузки динамического контента (ms)
     });
+    log.info('Calling stagehand.init()...');
+    await stagehand.init();
+    log.info('Stagehand initialized successfully!');
   }
-  return p_browser;
+  return stagehand;
 }
 
-// Закрыть браузер
-export async function closeBrowserAsync(): Promise<void> {
-  if (p_browser) {
-    await p_browser.close();
-    p_browser = null;
+// Закрыть Stagehand
+export async function closeStagehandAsync(): Promise<void> {
+  if (stagehand) {
+    await stagehand.close();
+    stagehand = null;
   }
-}
-
-// Случайная задержка для имитации человека
-function randomDelay(_min: number = 1000, _max: number = 3000): Promise<void> {
-  const delay = Math.floor(Math.random() * (_max - _min + 1)) + _min;
-  return new Promise(resolve => setTimeout(resolve, delay));
 }
 
 // Парсинг зарплаты из строки "от 100 000 до 150 000 руб."
@@ -92,96 +107,94 @@ function parseSalary(_salaryText: string | null): { from?: number; to?: number; 
   return { currency };
 }
 
-// Скрапинг одной страницы
-async function scrapePageAsync(_page: Page): Promise<IScrapedVacancy[]> {
-  const vacancies: IScrapedVacancy[] = [];
-
-  const cards = await _page.$$(HH_SELECTORS.vacancyCard);
-
-  for (const card of cards) {
-    try {
-      const titleEl = await card.$(HH_SELECTORS.title);
-      const companyEl = await card.$(HH_SELECTORS.company);
-      const salaryEl = await card.$(HH_SELECTORS.salary);
-      const locationEl = await card.$(HH_SELECTORS.location);
-
-      const title = await titleEl?.textContent() || '';
-      const url = await titleEl?.getAttribute('href') || '';
-      const company = await companyEl?.textContent() || '';
-      const salaryText = await salaryEl?.textContent();
-      const location = await locationEl?.textContent() || '';
-
-      // Извлекаем ID из URL
-      const idMatch = url.match(/vacancy\/(\d+)/);
-      const externalId = idMatch?.[1] || '';
-
-      if (!externalId || !title) continue;
-
-      const salary = parseSalary(salaryText || null);
-
-      // Определяем удалёнку по локации
-      const isRemote = location.toLowerCase().includes('удал') ||
-                       location.toLowerCase().includes('remote');
-
-      vacancies.push({
-        externalId,
-        url: url.startsWith('http') ? url : `https://hh.ru${url}`,
-        title: title.trim(),
-        company: company.trim(),
-        salaryFrom: salary.from,
-        salaryTo: salary.to,
-        currency: salary.currency,
-        location: location.trim(),
-        remote: isRemote,
-      });
-    } catch (error) {
-      // Пропускаем битые карточки
-      console.error('Ошибка парсинга карточки:', error);
-    }
-  }
-
-  return vacancies;
-}
-
 // Основная функция скрапинга
-export async function scrapeVacanciesAsync(_params: ISearchParams): Promise<IScrapedVacancy[]> {
-  const browser = await getBrowserAsync();
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    viewport: { width: 1920, height: 1080 },
-  });
-  const page = await context.newPage();
+export async function scrapeVacanciesAsync(params: ISearchParams): Promise<IScrapedVacancy[]> {
+  log.info('scrapeVacanciesAsync called', { params });
+  const stagehand = await getStagehandAsync();
+  log.info('Got Stagehand instance');
+
+  // v3: получаем page из context
+  const page = stagehand.context.pages()[0];
 
   const allVacancies: IScrapedVacancy[] = [];
-  const maxPages = _params.pages || 5;
+  const maxPages = params.pages || 5;
 
   try {
-    // Формируем URL поиска
+    // Формируем URL поиска HH.ru
     const searchUrl = new URL('https://hh.ru/search/vacancy');
-    if (_params.query) searchUrl.searchParams.set('text', _params.query);
-    if (_params.area) searchUrl.searchParams.set('area', String(_params.area));
-    if (_params.salary) searchUrl.searchParams.set('salary', String(_params.salary));
-    if (_params.experience) searchUrl.searchParams.set('experience', _params.experience);
+    if (params.query) searchUrl.searchParams.set('text', params.query);
+    if (params.area) searchUrl.searchParams.set('area', String(params.area));
+    if (params.salary) searchUrl.searchParams.set('salary', String(params.salary));
+    if (params.experience) searchUrl.searchParams.set('experience', params.experience);
 
-    await page.goto(searchUrl.toString(), { waitUntil: 'networkidle' });
-    await randomDelay();
+    log.info(`Navigating to: ${searchUrl.toString()}`);
+    await page.goto(searchUrl.toString());
 
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      console.log(`Скрапинг страницы ${pageNum}...`);
+      log.info(`Scraping page ${pageNum}/${maxPages}...`);
 
-      const pageVacancies = await scrapePageAsync(page);
-      allVacancies.push(...pageVacancies);
+      // AI-powered извлечение данных со страницы
+      const extracted = await stagehand.extract(
+        `Extract all job vacancies from this HeadHunter search results page.
+        For each vacancy card:
+        - Extract the vacancy ID from the URL (e.g., /vacancy/123456 → "123456")
+        - Get the job title
+        - Get the company name
+        - Get the full URL link to the vacancy
+        - Get salary information exactly as displayed (e.g., "от 100 000 до 150 000 руб.")
+        - Get the location/city information
 
-      // Проверяем есть ли следующая страница
-      const nextButton = await page.$(HH_SELECTORS.nextPage);
-      if (!nextButton || pageNum >= maxPages) break;
+        Also determine if there is a "Next page" button or pagination available.`,
+        VacanciesPageSchema
+      ) as ExtractedPage;
 
-      await nextButton.click();
+      log.info(`Extracted ${extracted.vacancies.length} vacancies from page ${pageNum}`);
+
+      // Преобразуем извлеченные данные в формат IScrapedVacancy
+      for (const vacancy of extracted.vacancies) {
+        const salary = parseSalary(vacancy.salaryText || null);
+
+        // Определяем удаленку по ключевым словам в локации
+        const isRemote =
+          vacancy.location?.toLowerCase().includes('удал') ||
+          vacancy.location?.toLowerCase().includes('remote') ||
+          vacancy.location?.toLowerCase().includes('дистанц') ||
+          false;
+
+        allVacancies.push({
+          externalId: vacancy.externalId,
+          url: vacancy.url.startsWith('http') ? vacancy.url : `https://hh.ru${vacancy.url}`,
+          title: vacancy.title.trim(),
+          company: vacancy.company.trim(),
+          salaryFrom: salary.from,
+          salaryTo: salary.to,
+          currency: salary.currency,
+          location: vacancy.location?.trim(),
+          remote: isRemote,
+        });
+      }
+
+      // Проверка наличия следующей страницы
+      if (!extracted.hasNextPage || pageNum >= maxPages) {
+        log.info('No more pages or reached max pages limit');
+        break;
+      }
+
+      // AI-powered клик по кнопке "Следующая страница"
+      log.info('Clicking next page button...');
+      await stagehand.act('click on the next page button to load more vacancies');
+
+      // Ждем загрузки новой страницы
       await page.waitForLoadState('networkidle');
-      await randomDelay();
+
+      // Небольшая задержка для имитации человека
+      await page.waitForTimeout(1000 + Math.random() * 2000);
     }
-  } finally {
-    await context.close();
+
+    log.info(`Total vacancies scraped: ${allVacancies.length}`);
+  } catch (error) {
+    log.error('Error during scraping', error instanceof Error ? error : undefined, { error });
+    throw error;
   }
 
   return allVacancies;
