@@ -3,7 +3,7 @@
  * Хранит собранные вакансии со всех источников
  */
 
-import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, boolean, timestamp, jsonb, unique, index, varchar } from 'drizzle-orm/pg-core';
 import { sources } from './sources';
 
 export const vacancies = pgTable('vacancies', {
@@ -55,12 +55,32 @@ export const vacancies = pgTable('vacancies', {
   // AI/ML trend tracking
   requiresAi: boolean('requires_ai').default(false), // Упоминается AI/ML/GPT
 
+  // === НОВОЕ: Категоризация (2-уровневая иерархия) ===
+  jobCategory: varchar('job_category', { length: 50 }), // frontend | backend | devops | mobile | data | qa | product | fullstack | ai-ml | security | other
+  jobTags: jsonb('job_tags').$type<string[]>(), // ['react', 'typescript', 'nextjs'] - до 5 тегов
+
+  // === НОВОЕ: Унификация компаний ===
+  companyNameNormalized: text('company_name_normalized'), // "Яндекс" вместо "ООО Яндекс", "Yandex LLC", "Яндекс (Москва)"
+  companyType: varchar('company_type', { length: 20 }), // product | outsource | consulting | startup
+
   // Tech stack detailed (replacing simple skills with structured data)
   techStack: jsonb('tech_stack').$type<Array<{
     name: string;           // 'React'
     category: string;       // 'framework' | 'language' | 'tool' | 'cloud'
     required: boolean;      // true = must-have, false = nice-to-have
   }>>(),
+
+  // === НОВОЕ: AI-рекомендация зарплаты ===
+  salaryRecommendation: jsonb('salary_recommendation').$type<{
+    min: number;
+    max: number;
+    currency: string;
+    confidence: 'low' | 'medium' | 'high';
+    reasoning: string;
+  }>(),
+
+  // === НОВОЕ: Twitter-style краткое описание (AI-генерированное) ===
+  descriptionShort: text('description_short'), // 200-300 символов, Twitter-style, БЕЗ EMOJI
 
   // Мета
   publishedAt: timestamp('published_at', { mode: 'date' }),
@@ -77,6 +97,9 @@ export const vacancies = pgTable('vacancies', {
   idxSource: index('idx_vacancies_source').on(_table.sourceId),
   idxCollected: index('idx_vacancies_collected').on(_table.collectedAt),
   idxSkills: index('idx_vacancies_skills').using('gin', _table.skills),
+  // Индексы для категоризации
+  idxJobCategory: index('idx_vacancies_job_category').on(_table.jobCategory),
+  idxJobTags: index('idx_vacancies_job_tags').using('gin', _table.jobTags),
 }));
 
 export type Vacancy = typeof vacancies.$inferSelect;

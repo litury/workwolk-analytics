@@ -288,6 +288,64 @@ export interface IAnalytics {
   topBenefits: Array<{ benefit: string; count: number }>;
   workFormatDistribution: Array<{ format: string; count: number }>;
   topTechStack: Array<{ tech: string; count: number }>;  // Из structured techStack
+  // === AI ENRICHED METRICS ===
+  categoryDistribution: Array<{
+    category: string;
+    count: number;
+    avgMinSalary: number;
+    avgMaxSalary: number;
+    companies: number;
+  }>;
+  topCompanies: Array<{
+    company: string;
+    type: string | null;
+    vacancies: number;
+    categories: number;
+    avgMinSalary: number;
+    avgMaxSalary: number;
+  }>;
+  salaryPercentiles: {
+    bySeniority: Array<{
+      level: string;
+      count: number;
+      p25: number;
+      p50: number;
+      p75: number;
+      aiJobs: number;
+    }>;
+  };
+  techStackDetailed: Array<{
+    name: string;
+    category: string;
+    count: number;
+    requiredPercent: number;
+  }>;
+  aiAdoptionByCategory: Array<{
+    category: string;
+    total: number;
+    aiJobs: number;
+    aiPercentage: number;
+  }>;
+  // === ADDITIONAL ENRICHED METRICS ===
+  topJobTags: Array<{ tag: string; count: number }>;
+  companySizeDistribution: Array<{ size: string; count: number }>;
+  contractTypeDistribution: Array<{ type: string; count: number }>;
+  topIndustries: Array<{ industry: string; count: number; avgSalary: number }>;
+  // === SALARY METRICS (базовые поля) ===
+  salaryByExperience: Array<{
+    experience: string;
+    count: number;
+    avgFrom: number;
+    avgTo: number;
+    p25: number;
+    p50: number;
+    p75: number;
+  }>;
+  salaryDistribution: {
+    withSalary: number;
+    withoutSalary: number;
+    percentWithSalary: number;
+  };
 }
 
 /**
@@ -413,6 +471,308 @@ export async function getAnalyticsAsync(): Promise<IAnalytics> {
     ? techStackResult.map(row => ({ tech: row.tech, count: Number(row.count) }))
     : [];
 
+  // === AI ENRICHED METRICS ===
+
+  // Category distribution with salaries
+  const categoryResult = await db.execute<{
+    job_category: string;
+    count: string;
+    companies: string;
+    avg_min: string;
+    avg_max: string;
+  }>(sql`
+    SELECT
+      job_category,
+      COUNT(*) as count,
+      COUNT(DISTINCT company_name_normalized) as companies,
+      ROUND(AVG((salary_recommendation->>'min')::numeric)) as avg_min,
+      ROUND(AVG((salary_recommendation->>'max')::numeric)) as avg_max
+    FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL AND job_category IS NOT NULL
+    GROUP BY job_category
+    ORDER BY count DESC
+  `);
+  const categoryDistribution = Array.isArray(categoryResult)
+    ? categoryResult.map(row => ({
+        category: row.job_category,
+        count: Number(row.count),
+        avgMinSalary: Number(row.avg_min || 0),
+        avgMaxSalary: Number(row.avg_max || 0),
+        companies: Number(row.companies),
+      }))
+    : [];
+
+  // Top companies (normalized) with types and salaries
+  const companiesResult = await db.execute<{
+    company: string;
+    company_type: string | null;
+    vacancies: string;
+    categories: string;
+    avg_min: string;
+    avg_max: string;
+  }>(sql`
+    SELECT
+      company_name_normalized as company,
+      company_type,
+      COUNT(*) as vacancies,
+      COUNT(DISTINCT job_category) as categories,
+      ROUND(AVG((salary_recommendation->>'min')::numeric)) as avg_min,
+      ROUND(AVG((salary_recommendation->>'max')::numeric)) as avg_max
+    FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL
+      AND company_name_normalized IS NOT NULL
+    GROUP BY company_name_normalized, company_type
+    HAVING COUNT(*) >= 3
+    ORDER BY vacancies DESC
+    LIMIT 15
+  `);
+  const topCompanies = Array.isArray(companiesResult)
+    ? companiesResult.map(row => ({
+        company: row.company,
+        type: row.company_type,
+        vacancies: Number(row.vacancies),
+        categories: Number(row.categories),
+        avgMinSalary: Number(row.avg_min || 0),
+        avgMaxSalary: Number(row.avg_max || 0),
+      }))
+    : [];
+
+  // Salary percentiles by seniority
+  const percentilesBySeniorityResult = await db.execute<{
+    seniority_level: string;
+    count: string;
+    p25: string;
+    p50: string;
+    p75: string;
+    ai_jobs: string;
+  }>(sql`
+    SELECT
+      seniority_level,
+      COUNT(*) as count,
+      ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p25,
+      ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p50,
+      ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p75,
+      COUNT(CASE WHEN requires_ai = true THEN 1 END) as ai_jobs
+    FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL
+      AND seniority_level IS NOT NULL
+      AND salary_recommendation IS NOT NULL
+    GROUP BY seniority_level
+    ORDER BY
+      CASE seniority_level
+        WHEN 'junior' THEN 1
+        WHEN 'middle' THEN 2
+        WHEN 'senior' THEN 3
+        WHEN 'lead' THEN 4
+        WHEN 'principal' THEN 5
+      END
+  `);
+  const bySeniority = Array.isArray(percentilesBySeniorityResult)
+    ? percentilesBySeniorityResult.map(row => ({
+        level: row.seniority_level,
+        count: Number(row.count),
+        p25: Number(row.p25 || 0),
+        p50: Number(row.p50 || 0),
+        p75: Number(row.p75 || 0),
+        aiJobs: Number(row.ai_jobs),
+      }))
+    : [];
+
+  // Detailed tech stack with category and required percentage
+  const techStackDetailedResult = await db.execute<{
+    technology: string;
+    category: string;
+    count: string;
+    required_pct: string;
+  }>(sql`
+    SELECT
+      tech->>'name' as technology,
+      tech->>'category' as category,
+      COUNT(*) as count,
+      ROUND(COUNT(CASE WHEN (tech->>'required')::boolean = true THEN 1 END) * 100.0 / COUNT(*), 1) as required_pct
+    FROM ${vacancies}
+    CROSS JOIN LATERAL jsonb_array_elements(tech_stack) as tech
+    WHERE ai_enriched_at IS NOT NULL
+    GROUP BY tech->>'name', tech->>'category'
+    HAVING COUNT(*) >= 1
+    ORDER BY count DESC
+    LIMIT 20
+  `);
+  const techStackDetailed = Array.isArray(techStackDetailedResult)
+    ? techStackDetailedResult.map(row => ({
+        name: row.technology,
+        category: row.category,
+        count: Number(row.count),
+        requiredPercent: Number(row.required_pct || 0),
+      }))
+    : [];
+
+  // AI adoption by category
+  const aiAdoptionResult = await db.execute<{
+    job_category: string;
+    total: string;
+    ai_jobs: string;
+    ai_percentage: string;
+  }>(sql`
+    SELECT
+      job_category,
+      COUNT(*) as total,
+      COUNT(CASE WHEN requires_ai = true THEN 1 END) as ai_jobs,
+      ROUND(COUNT(CASE WHEN requires_ai = true THEN 1 END) * 100.0 / COUNT(*), 1) as ai_percentage
+    FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL AND job_category IS NOT NULL
+    GROUP BY job_category
+    HAVING COUNT(*) >= 5
+    ORDER BY ai_percentage DESC
+  `);
+  const aiAdoptionByCategory = Array.isArray(aiAdoptionResult)
+    ? aiAdoptionResult.map(row => ({
+        category: row.job_category,
+        total: Number(row.total),
+        aiJobs: Number(row.ai_jobs),
+        aiPercentage: Number(row.ai_percentage || 0),
+      }))
+    : [];
+
+  // === ADDITIONAL ENRICHED METRICS ===
+
+  // Top job tags
+  const jobTagsResult = await db.execute<{ tag: string; count: number }>(sql`
+    SELECT tag, COUNT(*) as count
+    FROM ${vacancies}, jsonb_array_elements_text(job_tags) AS tag
+    WHERE ai_enriched_at IS NOT NULL AND job_tags IS NOT NULL
+    GROUP BY tag
+    ORDER BY count DESC
+    LIMIT 15
+  `);
+  const topJobTags = Array.isArray(jobTagsResult)
+    ? jobTagsResult.map(row => ({ tag: row.tag, count: Number(row.count) }))
+    : [];
+
+  // Company size distribution
+  const companySizeResult = await db.select({
+    size: vacancies.companySize,
+    count: sql<number>`count(*)`,
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.companySize} IS NOT NULL`)
+    .groupBy(vacancies.companySize)
+    .orderBy(sql`count(*) DESC`);
+  const companySizeDistribution = companySizeResult.map(row => ({
+    size: row.size || 'unknown',
+    count: Number(row.count),
+  }));
+
+  // Contract type distribution
+  const contractTypeResult = await db.select({
+    type: vacancies.contractType,
+    count: sql<number>`count(*)`,
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.contractType} IS NOT NULL`)
+    .groupBy(vacancies.contractType)
+    .orderBy(sql`count(*) DESC`);
+  const contractTypeDistribution = contractTypeResult.map(row => ({
+    type: row.type || 'unknown',
+    count: Number(row.count),
+  }));
+
+  // Top industries with avg salary
+  const industriesResult = await db.execute<{
+    industry: string;
+    count: string;
+    avg_salary: string;
+  }>(sql`
+    SELECT
+      company_industry as industry,
+      COUNT(*) as count,
+      ROUND(AVG((salary_from + salary_to) / 2)) as avg_salary
+    FROM ${vacancies}
+    WHERE company_industry IS NOT NULL
+      AND salary_from IS NOT NULL
+      AND salary_to IS NOT NULL
+    GROUP BY company_industry
+    ORDER BY count DESC
+    LIMIT 10
+  `);
+  const topIndustries = Array.isArray(industriesResult)
+    ? industriesResult.map(row => ({
+        industry: row.industry,
+        count: Number(row.count),
+        avgSalary: Number(row.avg_salary || 0),
+      }))
+    : [];
+
+  // === SALARY METRICS (базовые поля) ===
+
+  // Salary analysis by experience level
+  const salaryByExpResult = await db.execute<{
+    experience: string;
+    count: string;
+    avg_from: string;
+    avg_to: string;
+    p25: string;
+    p50: string;
+    p75: string;
+  }>(sql`
+    SELECT
+      experience,
+      COUNT(*) as count,
+      ROUND(AVG(salary_from)) as avg_from,
+      ROUND(AVG(salary_to)) as avg_to,
+      ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY salary_from)) as p25,
+      ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY salary_from)) as p50,
+      ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY salary_from)) as p75
+    FROM ${vacancies}
+    WHERE salary_from IS NOT NULL
+      AND salary_to IS NOT NULL
+      AND currency = 'RUB'
+    GROUP BY experience
+    ORDER BY
+      CASE experience
+        WHEN 'noExperience' THEN 1
+        WHEN '1-3' THEN 2
+        WHEN '3-6' THEN 3
+        WHEN '6+' THEN 4
+        ELSE 5
+      END
+  `);
+
+  const salaryByExperience = Array.isArray(salaryByExpResult)
+    ? salaryByExpResult.map(row => ({
+        experience: row.experience || 'Не указано',
+        count: Number(row.count),
+        avgFrom: Number(row.avg_from || 0),
+        avgTo: Number(row.avg_to || 0),
+        p25: Number(row.p25 || 0),
+        p50: Number(row.p50 || 0),
+        p75: Number(row.p75 || 0),
+      }))
+    : [];
+
+  // Salary distribution (с зарплатой vs без)
+  const [salaryStatsResult] = await db.execute<{
+    with_salary: string;
+    without_salary: string;
+  }>(sql`
+    SELECT
+      COUNT(CASE WHEN salary_from IS NOT NULL THEN 1 END) as with_salary,
+      COUNT(CASE WHEN salary_from IS NULL THEN 1 END) as without_salary
+    FROM ${vacancies}
+  `);
+
+  const withSalary = Number(salaryStatsResult?.with_salary || 0);
+  const withoutSalary = Number(salaryStatsResult?.without_salary || 0);
+  const percentWithSalary = totalVacancies > 0
+    ? Math.round((withSalary / totalVacancies) * 100)
+    : 0;
+
+  const salaryDistribution = {
+    withSalary,
+    withoutSalary,
+    percentWithSalary,
+  };
+
   return {
     totalVacancies,
     remoteVacancies,
@@ -426,5 +786,16 @@ export async function getAnalyticsAsync(): Promise<IAnalytics> {
     topBenefits,
     workFormatDistribution,
     topTechStack,
+    categoryDistribution,
+    topCompanies,
+    salaryPercentiles: { bySeniority },
+    techStackDetailed,
+    aiAdoptionByCategory,
+    topJobTags,
+    companySizeDistribution,
+    contractTypeDistribution,
+    topIndustries,
+    salaryByExperience,
+    salaryDistribution,
   };
 }
