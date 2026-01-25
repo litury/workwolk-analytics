@@ -218,6 +218,52 @@ body {
   animation: dataStream 3s ease-in-out infinite;
 }
 
+/* Custom Scrollbar - Cyberpunk Style */
+.terminal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
+}
+
+.terminal-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 4px var(--accent-cyan);
+  border-radius: 2px;
+}
+
+.terminal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-primary);
+  box-shadow: 0 0 8px var(--text-primary);
+}
+
+/* Firefox scrollbar */
+.terminal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-cyan) var(--bg-primary);
+}
+
+/* Desktop Header Marquee Animation */
+@keyframes platforms-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.platforms-marquee {
+  animation: platforms-marquee 15s linear infinite;
+  display: inline-block;
+}
+
+.platforms-marquee:hover {
+  animation-play-state: paused;
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *,
