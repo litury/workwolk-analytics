@@ -11,7 +11,7 @@ import { db, closeDatabase } from './shared/db/client';
 import { sql } from 'drizzle-orm';
 import { vacancyRoutes } from './modules/vacancy';
 import { initSourcesAsync } from './modules/vacancy/vacancyService';
-import { closeStagehandAsync } from './modules/hh';
+import { closeBrowserAsync } from './modules/hh';
 
 // BigInt сериализация для JSON
 (BigInt.prototype as any).toJSON = function() {
@@ -98,7 +98,7 @@ log.info('Available endpoints', {
 // Graceful shutdown
 async function shutdownAsync(): Promise<void> {
   log.info('Shutting down...');
-  await closeStagehandAsync();
+  await closeBrowserAsync();
   await closeDatabase();
   process.exit(0);
 }
