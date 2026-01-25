@@ -25,4 +25,4 @@ export interface VacanciesViewProps extends BaseViewProps {
 /**
  * Terminal view type union
  */
-export type TerminalView = 'status' | 'vacancies' | 'salaries' | 'skills' | 'trends' | 'game'
+export type TerminalView = 'home' | 'status' | 'vacancies' | 'salaries' | 'skills' | 'trends' | 'game'

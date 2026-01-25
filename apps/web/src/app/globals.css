@@ -329,3 +329,21 @@ html {
       inset 0 0 12px rgba(0, 255, 159, 0.15);
   }
 }
+
+/* Mobile-safe viewport heights */
+@layer utilities {
+  .h-screen-safe {
+    height: 100vh; /* Fallback для старых браузеров */
+    height: 100svh; /* Small Viewport Height - минимальная высота viewport */
+  }
+
+  .h-screen-dynamic {
+    height: 100vh; /* Fallback */
+    height: 100dvh; /* Dynamic Viewport Height - динамическая высота */
+  }
+
+  .min-h-screen-safe {
+    min-height: 100vh; /* Fallback */
+    min-height: 100svh;
+  }
+}

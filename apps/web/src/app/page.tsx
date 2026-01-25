@@ -5,6 +5,7 @@ import { getAnalytics, getVacancies, type IAnalytics, type IVacancy } from '@/li
 import type { TerminalView } from '@/types/terminal'
 import MobileMenu from '@/components/MobileMenu'
 import SnakeGame from '@/components/SnakeGame'
+import HomeView from '@/components/terminal/HomeView'
 import StatusView from '@/components/terminal/StatusView'
 import VacanciesView from '@/components/terminal/VacanciesView'
 import SalariesView from '@/components/terminal/SalariesView'
@@ -12,7 +13,7 @@ import SkillsView from '@/components/terminal/SkillsView'
 import TrendsView from '@/components/terminal/TrendsView'
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<TerminalView>('status')
+  const [activeView, setActiveView] = useState<TerminalView>('home')
   const [analytics, setAnalytics] = useState<IAnalytics | null>(null)
   const [vacancies, setVacancies] = useState<IVacancy[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +26,7 @@ export default function Home() {
         setLoading(true)
         const [analyticsData, vacanciesData] = await Promise.all([
           getAnalytics(),
-          getVacancies({ limit: 5 })
+          getVacancies({ limit: 50 })
         ])
         setAnalytics(analyticsData)
         setVacancies(vacanciesData.data)
@@ -38,7 +39,7 @@ export default function Home() {
     fetchData()
   }, [])
   return (
-    <main className="terminal-grid scanlines noise relative h-screen overflow-hidden">
+    <main className="terminal-grid scanlines noise relative h-screen-safe overflow-hidden">
       {/* Matrix Rain Background */}
       <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute top-10 left-[10%] data-stream text-xs" style={{ animationDelay: '0s' }}>01001000</div>
@@ -110,6 +111,17 @@ export default function Home() {
               {/* Content Area - Flexible */}
               <div className="flex-1 p-5 md:p-8 overflow-y-auto terminal-scrollbar min-h-0">
                 <AnimatePresence mode="wait">
+                  {activeView === 'home' && (
+                    <motion.div
+                      key="home"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <HomeView analytics={analytics} loading={loading} />
+                    </motion.div>
+                  )}
                   {activeView === 'status' && (
                     <motion.div
                       key="status"
@@ -181,9 +193,27 @@ export default function Home() {
 
               {/* Navigation Footer */}
               <div className="border-t border-[var(--border-color)] shrink-0">
-                {/* Desktop Navigation - 5 buttons */}
+                {/* Desktop Navigation - 6 buttons */}
                 <div className="hidden md:block px-8 py-5">
                   <div className="flex flex-wrap gap-2 font-mono">
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.85, x: -8 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+                      disabled={loading}
+                      onClick={() => setActiveView('home')}
+                      aria-label="Главная страница"
+                      aria-pressed={activeView === 'home'}
+                      className={`px-4 py-2 border transition-all cursor-pointer touch-manipulation text-xs ${
+                        loading ? 'opacity-50 cursor-not-allowed' : ''
+                      } ${
+                        activeView === 'home'
+                          ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]'
+                          : 'border-[var(--border-color)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)]'
+                      }`}
+                    >
+                      [HOME]
+                    </motion.button>
                     <motion.button
                       initial={{ opacity: 0, scale: 0.85, x: -8 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}

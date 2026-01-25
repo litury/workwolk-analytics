@@ -12,6 +12,7 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose, activeView, onViewChange, loading }: MobileMenuProps) {
   const menuItems: { view: TerminalView; label: string }[] = [
+    { view: 'home', label: '[HOME]' },
     { view: 'status', label: '[STATUS]' },
     { view: 'vacancies', label: '[ВАКАНСИИ]' },
     { view: 'salaries', label: '[ЗАРПЛАТЫ]' },

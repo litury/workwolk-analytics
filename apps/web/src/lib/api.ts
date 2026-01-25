@@ -39,6 +39,64 @@ export interface IAnalytics {
   topBenefits: Array<{ benefit: string; count: number }>;
   workFormatDistribution: Array<{ format: string; count: number }>;
   topTechStack: Array<{ tech: string; count: number }>;
+  // === AI ENRICHED METRICS ===
+  categoryDistribution: Array<{
+    category: string;
+    count: number;
+    avgMinSalary: number;
+    avgMaxSalary: number;
+    companies: number;
+  }>;
+  topCompanies: Array<{
+    company: string;
+    type: string | null;
+    vacancies: number;
+    categories: number;
+    avgMinSalary: number;
+    avgMaxSalary: number;
+  }>;
+  salaryPercentiles: {
+    bySeniority: Array<{
+      level: string;
+      count: number;
+      p25: number;
+      p50: number;
+      p75: number;
+      aiJobs: number;
+    }>;
+  };
+  techStackDetailed: Array<{
+    name: string;
+    category: string;
+    count: number;
+    requiredPercent: number;
+  }>;
+  aiAdoptionByCategory: Array<{
+    category: string;
+    total: number;
+    aiJobs: number;
+    aiPercentage: number;
+  }>;
+  // === ADDITIONAL ENRICHED METRICS ===
+  topJobTags: Array<{ tag: string; count: number }>;
+  companySizeDistribution: Array<{ size: string; count: number }>;
+  contractTypeDistribution: Array<{ type: string; count: number }>;
+  topIndustries: Array<{ industry: string; count: number; avgSalary: number }>;
+  // === SALARY METRICS (базовые поля) ===
+  salaryByExperience: Array<{
+    experience: string;
+    count: number;
+    avgFrom: number;
+    avgTo: number;
+    p25: number;
+    p50: number;
+    p75: number;
+  }>;
+  salaryDistribution: {
+    withSalary: number;
+    withoutSalary: number;
+    percentWithSalary: number;
+  };
 }
 
 export interface IVacanciesResponse {

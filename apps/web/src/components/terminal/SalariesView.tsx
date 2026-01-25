@@ -1,7 +1,13 @@
 import { motion } from 'framer-motion'
 import type { BaseViewProps } from '@/types/terminal'
 import { formatLargeNumber } from '@/lib/utils/formatters'
-import { ProgressBar } from '@/lib/utils/terminal'
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  'noExperience': 'Без опыта',
+  '1-3': 'Junior (1-3 года)',
+  '3-6': 'Middle (3-6 лет)',
+  '6+': 'Senior (6+ лет)',
+}
 
 export default function SalariesView({ analytics, loading }: BaseViewProps) {
   if (loading || !analytics) {
@@ -14,13 +20,13 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
     )
   }
 
-  const avgFrom = analytics.averageSalaryFrom
-  const avgTo = analytics.averageSalaryTo
-  const workFormats = analytics.workFormatDistribution || []
-  const seniority = analytics.seniorityDistribution?.slice(0, 3) || []
+  // Приоритет: базовые данные (salaryByExperience) ВСЕГДА
+  const salaryData = analytics.salaryByExperience || []
+  const hasData = salaryData.length > 0
 
-  const totalWorkFormat = workFormats.reduce((sum, item) => sum + item.count, 0)
-  const maxSeniorityCount = Math.max(...seniority.map(s => s.count), 1)
+  // Показывать enriched данные только если их достаточно
+  const hasEnrichedData = analytics.salaryPercentiles?.bySeniority && analytics.salaryPercentiles.bySeniority.length >= 3
+  const topCompanies = analytics.topCompanies?.slice(0, 5) || []
 
   return (
     <div className="font-mono text-xs md:text-sm space-y-4">
@@ -30,88 +36,157 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
         <span className="text-[var(--accent-cyan)] neon-glow text-xs">MARKET</span>
       </div>
 
-      {/* Big Salary Display */}
-      <div className="border border-[var(--border-color)] p-4 bg-[var(--bg-secondary)] box-glow">
-        <div className="text-[var(--text-muted)] text-[9px] mb-2">AVG_RANGE</div>
+      {/* Section 1: Salary Coverage Info */}
+      <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
+        <div className="text-[var(--text-muted)] text-[9px] mb-2">SALARY_COVERAGE</div>
         <div className="flex items-baseline gap-2">
-          {avgFrom && (
-            <div className="text-2xl md:text-3xl font-bold text-[var(--accent-cyan)] neon-glow">
-              {formatLargeNumber(Math.round(avgFrom))}
-            </div>
-          )}
-          {avgFrom && avgTo && (
-            <div className="text-xl md:text-2xl text-[var(--text-muted)]">–</div>
-          )}
-          {avgTo && (
-            <div className="text-2xl md:text-3xl font-bold text-[var(--accent-cyan)] neon-glow">
-              {formatLargeNumber(Math.round(avgTo))}
-            </div>
-          )}
-          <div className="text-lg md:text-xl text-[var(--text-primary)]">₽</div>
+          <span className="text-2xl font-bold text-[var(--accent-cyan)] neon-glow">
+            {formatLargeNumber(analytics.salaryDistribution.withSalary)}
+          </span>
+          <span className="text-[var(--text-muted)]">/ {formatLargeNumber(analytics.totalVacancies)}</span>
+          <span className="text-[var(--text-secondary)] ml-2">
+            ({analytics.salaryDistribution.percentWithSalary}%)
+          </span>
         </div>
-        {!avgFrom && !avgTo && (
-          <div className="text-[var(--text-muted)]">Данные недоступны</div>
-        )}
+        <div className="text-[var(--text-muted)] text-[9px] mt-1">
+          вакансий с указанной зарплатой
+        </div>
       </div>
 
-      {/* Work Format Breakdown */}
-      <div className="space-y-3">
-        <div className="text-[var(--text-muted)] text-[9px]">WORK_FORMAT</div>
-        {workFormats.map((format, index) => {
-          const percentage = totalWorkFormat > 0 ? (format.count / totalWorkFormat) * 100 : 0
-          return (
+      {/* Section 2: Salary by Experience (ОСНОВНОЕ) */}
+      {hasData ? (
+        <div className="space-y-3">
+          <div className="text-[var(--text-muted)] text-[9px]">SALARY_BY_EXPERIENCE</div>
+          {salaryData.map((level, index) => (
             <motion.div
-              key={format.format}
+              key={level.experience}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center justify-between"
+              transition={{ delay: index * 0.08 }}
+              className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] space-y-2"
             >
-              <div className="flex items-baseline gap-2">
-                <span className="text-[var(--text-primary)] text-sm font-bold">
-                  {percentage.toFixed(1)}%
+              {/* Experience Level Header */}
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--text-primary)] font-bold text-xs">
+                  {EXPERIENCE_LABELS[level.experience] || level.experience}
                 </span>
-                <span className="text-[var(--text-secondary)] text-xs">
-                  {format.format.toUpperCase()}
+                <span className="text-[var(--text-muted)] text-[9px]">
+                  {formatLargeNumber(level.count)} вакансий
                 </span>
               </div>
-              <span className="text-[var(--text-muted)] text-[9px]">
-                {formatLargeNumber(format.count)}
-              </span>
-            </motion.div>
-          )
-        })}
-      </div>
 
-      {/* Seniority Breakdown */}
-      {seniority.length > 0 && (
+              {/* Percentiles */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="border-l-2 border-[var(--text-secondary)] pl-2">
+                  <div className="text-[var(--text-muted)] text-[8px]">P25</div>
+                  <div className="text-[var(--text-primary)] font-bold text-sm">
+                    {Math.round(level.p25 / 1000)}K
+                  </div>
+                </div>
+                <div className="border-l-2 border-[var(--accent-cyan)] pl-2">
+                  <div className="text-[var(--text-muted)] text-[8px]">P50 (Медиана)</div>
+                  <div className="text-[var(--accent-cyan)] font-bold text-sm neon-glow">
+                    {Math.round(level.p50 / 1000)}K
+                  </div>
+                </div>
+                <div className="border-l-2 border-[var(--text-secondary)] pl-2">
+                  <div className="text-[var(--text-muted)] text-[8px]">P75</div>
+                  <div className="text-[var(--text-primary)] font-bold text-sm">
+                    {Math.round(level.p75 / 1000)}K
+                  </div>
+                </div>
+              </div>
+
+              {/* Average Range */}
+              <div className="text-[var(--text-muted)] text-[9px] pt-1 border-t border-[var(--border-color)]">
+                Средняя вилка:{' '}
+                <span className="text-[var(--text-primary)]">
+                  {Math.round(level.avgFrom / 1000)}K – {Math.round(level.avgTo / 1000)}K ₽
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="border border-[var(--border-color)] p-4 bg-[var(--bg-secondary)] text-center">
+          <div className="text-[var(--text-muted)]">
+            Недостаточно данных о зарплатах по уровням опыта
+          </div>
+        </div>
+      )}
+
+      {/* Section 3: Top Companies (если есть enriched данные) */}
+      {topCompanies.length >= 3 && (
         <div className="space-y-3">
-          <div className="text-[var(--text-muted)] text-[9px]">SENIORITY_TOP3</div>
-          {seniority.map((level, index) => {
-            const percentage = maxSeniorityCount > 0 ? (level.count / maxSeniorityCount) * 100 : 0
-            return (
-              <motion.div
-                key={level.level}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="space-y-1"
-              >
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-primary)]">{level.level}</span>
-                  <span className="text-[var(--text-muted)] text-[9px]">
-                    {formatLargeNumber(level.count)}
+          <div className="text-[var(--text-muted)] text-[9px]">TOP_COMPANIES (enriched)</div>
+          {topCompanies.map((company, index) => (
+            <motion.div
+              key={company.company}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.08 }}
+              className="flex items-center justify-between text-xs border-l-2 border-[var(--accent-cyan)] pl-3 py-1"
+            >
+              <div className="flex flex-col gap-1">
+                <span className="text-[var(--text-primary)]">{company.company}</span>
+                <div className="flex items-center gap-2">
+                  {company.type && (
+                    <span className="text-[var(--text-muted)] text-[8px] px-1 border border-[var(--border-color)]">
+                      {company.type}
+                    </span>
+                  )}
+                  <span className="text-[var(--text-muted)] text-[8px]">
+                    {company.vacancies} вак. / {company.categories} кат.
                   </span>
                 </div>
-                <div className="relative h-1.5 bg-[var(--bg-primary)] border border-[var(--border-color)]">
-                  <div
-                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-[var(--text-secondary)] to-[var(--accent-cyan)]"
-                    style={{ width: `${percentage}%` }}
-                  />
+              </div>
+              <div className="text-[var(--accent-cyan)] text-[9px] text-right">
+                {company.avgMinSalary > 0 ? (
+                  <>{Math.round(company.avgMinSalary / 1000)}-{Math.round(company.avgMaxSalary / 1000)}K</>
+                ) : 'N/A'}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Section 4: Enriched Percentiles (опционально, если есть достаточно данных) */}
+      {hasEnrichedData && (
+        <div className="space-y-3 border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
+          <div className="flex items-center gap-2">
+            <div className="text-[var(--text-muted)] text-[9px]">AI_ENRICHED_DATA</div>
+            <div className="text-[8px] px-1 border border-[var(--accent-cyan)] text-[var(--accent-cyan)]">
+              BETA
+            </div>
+          </div>
+          {analytics.salaryPercentiles.bySeniority.map((level) => (
+            <div key={level.level} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[var(--text-primary)] uppercase font-bold">{level.level}</span>
+                <span className="text-[var(--text-muted)] text-[9px]">{formatLargeNumber(level.count)}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <div className="text-[var(--text-muted)] text-[8px]">P25</div>
+                  <div className="text-[var(--text-primary)] font-bold">
+                    {Math.round(level.p25 / 1000)}K
+                  </div>
                 </div>
-              </motion.div>
-            )
-          })}
+                <div>
+                  <div className="text-[var(--text-muted)] text-[8px]">P50</div>
+                  <div className="text-[var(--accent-cyan)] font-bold neon-glow">
+                    {Math.round(level.p50 / 1000)}K
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[var(--text-muted)] text-[8px]">P75</div>
+                  <div className="text-[var(--text-secondary)] font-bold">
+                    {Math.round(level.p75 / 1000)}K
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

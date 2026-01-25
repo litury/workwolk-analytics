@@ -113,6 +113,87 @@ export default function StatusView({ analytics, loading, error }: StatusViewProp
           </div>
         </div>
       </div>
+
+      {/* Job Categories Distribution */}
+      {analytics.categoryDistribution && analytics.categoryDistribution.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[var(--text-secondary)]">[JOB CATEGORIES]</div>
+          <div className="space-y-2">
+            {analytics.categoryDistribution.slice(0, 5).map((cat) => (
+              <div key={cat.category} className="flex items-center justify-between text-xs border-l-2 border-[var(--accent-cyan)] pl-3 py-1">
+                <span className="text-[var(--text-primary)] uppercase">{cat.category}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[var(--text-muted)]">{formatLargeNumber(cat.count)}</span>
+                  <span className="text-[var(--accent-cyan)] text-[9px]">
+                    {cat.avgMinSalary > 0 ? `${Math.round(cat.avgMinSalary / 1000)}K-${Math.round(cat.avgMaxSalary / 1000)}K ₽` : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Work Format Distribution */}
+      {analytics.workFormatDistribution && analytics.workFormatDistribution.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[var(--text-secondary)]">[WORK FORMAT]</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {analytics.workFormatDistribution.map((format) => {
+              const percent = analytics.totalVacancies > 0
+                ? (format.count / analytics.totalVacancies) * 100
+                : 0
+              return (
+                <div key={format.format} className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
+                  <div className="text-[var(--text-muted)] text-[8px] mb-1 uppercase">{format.format || 'other'}</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg text-[var(--text-primary)] font-bold">{percent.toFixed(0)}%</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">({formatLargeNumber(format.count)})</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Contract Type Distribution */}
+      {analytics.contractTypeDistribution && analytics.contractTypeDistribution.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[var(--text-secondary)]">[CONTRACT TYPE]</div>
+          <div className="grid grid-cols-2 gap-2">
+            {analytics.contractTypeDistribution.map((contract) => {
+              const percent = analytics.totalVacancies > 0
+                ? (contract.count / analytics.totalVacancies) * 100
+                : 0
+              return (
+                <div key={contract.type} className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
+                  <div className="text-[var(--text-muted)] text-[8px] mb-1 uppercase">{contract.type}</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg text-[var(--text-primary)] font-bold">{percent.toFixed(0)}%</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">({formatLargeNumber(contract.count)})</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Company Size Distribution */}
+      {analytics.companySizeDistribution && analytics.companySizeDistribution.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-[var(--text-secondary)]">[COMPANY SIZE]</div>
+          <div className="space-y-2">
+            {analytics.companySizeDistribution.map((size) => (
+              <div key={size.size} className="flex items-center justify-between text-xs border-l-2 border-[var(--text-secondary)] pl-3 py-1">
+                <span className="text-[var(--text-primary)] uppercase">{size.size}</span>
+                <span className="text-[var(--text-muted)]">{formatLargeNumber(size.count)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
