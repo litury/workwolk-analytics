@@ -137,6 +137,15 @@ export async function saveVacanciesAsync(
       location: v.location,
       remote: v.remote,
       publishedAt: v.publishedAt,
+      // === НОВЫЕ ПОЛЯ (Phase 1: Quick Wins) ===
+      companySize: v.companySize,
+      companyIndustry: v.companyIndustry,
+      seniorityLevel: v.seniorityLevel,
+      workFormat: v.workFormat,
+      contractType: v.contractType,
+      benefits: v.benefits,
+      requiresAi: v.requiresAi,
+      techStack: v.techStack,
     };
 
     // Upsert: вставить или обновить
@@ -152,6 +161,15 @@ export async function saveVacanciesAsync(
           currency: vacancy.currency,
           description: vacancy.description,
           skills: vacancy.skills,
+          // Обновляем новые поля
+          companySize: vacancy.companySize,
+          companyIndustry: vacancy.companyIndustry,
+          seniorityLevel: vacancy.seniorityLevel,
+          workFormat: vacancy.workFormat,
+          contractType: vacancy.contractType,
+          benefits: vacancy.benefits,
+          requiresAi: vacancy.requiresAi,
+          techStack: vacancy.techStack,
           updatedAt: new Date(),
         },
       })
@@ -190,23 +208,25 @@ export async function scrapeAndSaveAsync(_params: ISearchParams): Promise<IScrap
   }
 
   try {
-    // Скрапим вакансии
+    // Скрапим вакансии с автосохранением после каждой страницы
     log.info('Starting scraping...', { params: _params });
-    const scraped = await scrapeVacanciesAsync(_params);
+
+    // Колбэк для сохранения вакансий после каждой страницы
+    const savePageCallback = async (pageVacancies: IScrapedVacancy[]) => {
+      const { saved, updated } = await saveVacanciesAsync(source.id, pageVacancies);
+      result.saved += saved;
+      result.updated += updated;
+      return { saved, updated };
+    };
+
+    const scraped = await scrapeVacanciesAsync(_params, source.id, savePageCallback);
     log.info('Scraping completed', { count: scraped.length });
     result.total = scraped.length;
 
-    if (scraped.length > 0) {
-      // Сохраняем в БД
-      const { saved, updated } = await saveVacanciesAsync(source.id, scraped);
-      result.saved = saved;
-      result.updated = updated;
-
-      // Обновляем время последнего скрапинга
-      await db.update(sources)
-        .set({ lastScrapedAt: new Date() })
-        .where(eq(sources.id, source.id));
-    }
+    // Обновляем время последнего скрапинга
+    await db.update(sources)
+      .set({ lastScrapedAt: new Date() })
+      .where(eq(sources.id, source.id));
   } catch (err) {
     result.errors.push(err instanceof Error ? err.message : String(err));
   }
@@ -248,4 +268,163 @@ export async function exportVacanciesCsvAsync(_filters: IVacancyFilters = {}): P
   ].join(','));
 
   return [headers.join(','), ...rows].join('\n');
+}
+
+/**
+ * Интерфейс для аналитических данных
+ */
+export interface IAnalytics {
+  // Базовые метрики
+  totalVacancies: number;
+  remoteVacancies: number;
+  averageSalaryFrom: number | null;
+  averageSalaryTo: number | null;
+  topSkills: Array<{ skill: string; count: number }>;
+  lastScrapedAt: Date | null;
+  activeSources: number;
+  // === НОВЫЕ МЕТРИКИ (Phase 1: Quick Wins) ===
+  aiAdoptionRate: number;  // Процент вакансий с requiresAi = true
+  seniorityDistribution: Array<{ level: string; count: number }>;
+  topBenefits: Array<{ benefit: string; count: number }>;
+  workFormatDistribution: Array<{ format: string; count: number }>;
+  topTechStack: Array<{ tech: string; count: number }>;  // Из structured techStack
+}
+
+/**
+ * Получить агрегированные аналитические данные
+ */
+export async function getAnalyticsAsync(): Promise<IAnalytics> {
+  // Общее количество вакансий
+  const [totalResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(vacancies);
+  const totalVacancies = Number(totalResult?.count ?? 0);
+
+  // Количество удаленных вакансий
+  const [remoteResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(vacancies)
+    .where(eq(vacancies.remote, true));
+  const remoteVacancies = Number(remoteResult?.count ?? 0);
+
+  // Средняя зарплата (от)
+  const [avgFromResult] = await db.select({
+    avg: sql<number>`avg(${vacancies.salaryFrom})`
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.salaryFrom} IS NOT NULL`);
+  const averageSalaryFrom = avgFromResult?.avg ? Math.round(Number(avgFromResult.avg)) : null;
+
+  // Средняя зарплата (до)
+  const [avgToResult] = await db.select({
+    avg: sql<number>`avg(${vacancies.salaryTo})`
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.salaryTo} IS NOT NULL`);
+  const averageSalaryTo = avgToResult?.avg ? Math.round(Number(avgToResult.avg)) : null;
+
+  // Топ навыков (распаковываем JSONB массив и считаем)
+  const topSkillsResult = await db.execute<{ skill: string; count: number }>(sql`
+    SELECT skill, COUNT(*) as count
+    FROM ${vacancies}, jsonb_array_elements_text(skills) AS skill
+    WHERE skills IS NOT NULL
+    GROUP BY skill
+    ORDER BY count DESC
+    LIMIT 10
+  `);
+  const topSkills = Array.isArray(topSkillsResult)
+    ? topSkillsResult.map(row => ({
+        skill: row.skill,
+        count: Number(row.count)
+      }))
+    : [];
+
+  // Последнее время скрапинга
+  const [lastScrapedResult] = await db.select({ lastScrapedAt: sources.lastScrapedAt })
+    .from(sources)
+    .orderBy(desc(sources.lastScrapedAt))
+    .limit(1);
+  const lastScrapedAt = lastScrapedResult?.lastScrapedAt ?? null;
+
+  // Количество активных источников
+  const [activeSourcesResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(sources)
+    .where(eq(sources.enabled, true));
+  const activeSources = Number(activeSourcesResult?.count ?? 0);
+
+  // === НОВЫЕ МЕТРИКИ (Phase 1: Quick Wins) ===
+
+  // AI adoption rate (% вакансий с requiresAi = true)
+  const [aiCountResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(vacancies)
+    .where(eq(vacancies.requiresAi, true));
+  const aiCount = Number(aiCountResult?.count ?? 0);
+  const aiAdoptionRate = totalVacancies > 0 ? Math.round((aiCount / totalVacancies) * 100) : 0;
+
+  // Seniority distribution
+  const seniorityResult = await db.select({
+    level: vacancies.seniorityLevel,
+    count: sql<number>`count(*)`,
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.seniorityLevel} IS NOT NULL`)
+    .groupBy(vacancies.seniorityLevel)
+    .orderBy(sql`count(*) DESC`);
+  const seniorityDistribution = seniorityResult.map(row => ({
+    level: row.level || 'unknown',
+    count: Number(row.count),
+  }));
+
+  // Top benefits (unnest JSONB array)
+  const benefitsResult = await db.execute<{ benefit: string; count: number }>(sql`
+    SELECT benefit, COUNT(*) as count
+    FROM ${vacancies}, jsonb_array_elements_text(benefits) AS benefit
+    WHERE benefits IS NOT NULL
+    GROUP BY benefit
+    ORDER BY count DESC
+    LIMIT 10
+  `);
+  const topBenefits = Array.isArray(benefitsResult)
+    ? benefitsResult.map(row => ({ benefit: row.benefit, count: Number(row.count) }))
+    : [];
+
+  // Work format distribution
+  const workFormatResult = await db.select({
+    format: vacancies.workFormat,
+    count: sql<number>`count(*)`,
+  })
+    .from(vacancies)
+    .where(sql`${vacancies.workFormat} IS NOT NULL`)
+    .groupBy(vacancies.workFormat)
+    .orderBy(sql`count(*) DESC`);
+  const workFormatDistribution = workFormatResult.map(row => ({
+    format: row.format || 'unknown',
+    count: Number(row.count),
+  }));
+
+  // Top tech stack (unnest structured JSONB array and count by name)
+  const techStackResult = await db.execute<{ tech: string; count: number }>(sql`
+    SELECT tech->>'name' as tech, COUNT(*) as count
+    FROM ${vacancies}, jsonb_array_elements(tech_stack) AS tech
+    WHERE tech_stack IS NOT NULL
+    GROUP BY tech->>'name'
+    ORDER BY count DESC
+    LIMIT 15
+  `);
+  const topTechStack = Array.isArray(techStackResult)
+    ? techStackResult.map(row => ({ tech: row.tech, count: Number(row.count) }))
+    : [];
+
+  return {
+    totalVacancies,
+    remoteVacancies,
+    averageSalaryFrom,
+    averageSalaryTo,
+    topSkills,
+    lastScrapedAt,
+    activeSources,
+    aiAdoptionRate,
+    seniorityDistribution,
+    topBenefits,
+    workFormatDistribution,
+    topTechStack,
+  };
 }

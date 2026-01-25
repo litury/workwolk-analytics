@@ -9,8 +9,9 @@ import {
   scrapeAndSaveAsync,
   exportVacanciesJsonAsync,
   exportVacanciesCsvAsync,
+  getAnalyticsAsync,
 } from './vacancyService';
-import { closeStagehandAsync } from '../hh';
+import { closeBrowserAsync } from '../hh';
 
 export const vacancyRoutes = new Elysia({ prefix: '/api/vacancies' })
 
@@ -93,7 +94,13 @@ export const vacancyRoutes = new Elysia({ prefix: '/api/vacancies' })
     }),
   })
 
+  // GET /api/vacancies/analytics - аналитика
+  .get('/analytics', async () => {
+    const analytics = await getAnalyticsAsync();
+    return analytics;
+  })
+
   // Закрытие браузера при завершении
   .onStop(async () => {
-    await closeStagehandAsync();
+    await closeBrowserAsync();
   });
