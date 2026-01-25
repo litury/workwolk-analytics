@@ -9,4 +9,8 @@ export const env = {
 
   // Scraper settings
   headless: process.env.HEADLESS !== 'false',
+
+  // AI settings
+  GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
 };
