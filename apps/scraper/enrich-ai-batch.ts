@@ -19,7 +19,7 @@ import { env } from './src/config/env';
 
 const log = createLogger('EnrichAIBatch');
 const BATCH_SIZE = 5;
-const CONCURRENCY = 15;  // 15 параллельных запросов (1000 RPM лимит)
+const CONCURRENCY = 50;  // 50 параллельных запросов (1000 RPM лимит - можно до 1000/60*5 = 83)
 
 // Schema для одной вакансии
 const AIAnalysisSchema = z.object({
