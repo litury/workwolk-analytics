@@ -38,10 +38,38 @@ export const vacancies = pgTable('vacancies', {
   location: text('location'),                   // 'Москва', 'Удалённо'
   remote: boolean('remote').default(false),
 
+  // === НОВЫЕ ПОЛЯ (Фаза 1: Quick Wins) ===
+
+  // Company insights
+  companySize: text('company_size'),            // '1-10', '11-50', '51-200', '201-500', '500+'
+  companyIndustry: text('company_industry'),    // 'Fintech', 'E-commerce', 'SaaS', etc.
+
+  // Job classification
+  seniorityLevel: text('seniority_level'),      // 'junior', 'middle', 'senior', 'lead', 'principal'
+  workFormat: text('work_format'),              // 'remote', 'hybrid', 'office'
+  contractType: text('contract_type'),          // 'permanent', 'contract', 'freelance', 'intern'
+
+  // Benefits & perks
+  benefits: jsonb('benefits').$type<string[]>(), // ['ДМС', 'Опционы', 'Обучение', 'Гибкий график']
+
+  // AI/ML trend tracking
+  requiresAi: boolean('requires_ai').default(false), // Упоминается AI/ML/GPT
+
+  // Tech stack detailed (replacing simple skills with structured data)
+  techStack: jsonb('tech_stack').$type<Array<{
+    name: string;           // 'React'
+    category: string;       // 'framework' | 'language' | 'tool' | 'cloud'
+    required: boolean;      // true = must-have, false = nice-to-have
+  }>>(),
+
   // Мета
   publishedAt: timestamp('published_at', { mode: 'date' }),
   collectedAt: timestamp('collected_at', { mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow(),
+
+  // === ETL Pipeline Tracking ===
+  detailsFetchedAt: timestamp('details_fetched_at', { mode: 'date' }), // Когда собрали детали (description, skills)
+  aiEnrichedAt: timestamp('ai_enriched_at', { mode: 'date' }),         // Когда обогатили через AI
 }, (_table) => ({
   // Уникальность: один external_id на источник
   uniqueSourceExternal: unique().on(_table.sourceId, _table.externalId),
