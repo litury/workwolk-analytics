@@ -109,7 +109,8 @@ export interface IVacanciesResponse {
 }
 
 // Базовый URL API (можно вынести в env)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// В production используется Next.js API proxy для доступа к internal Docker API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 /**
  * Получить аналитические данные
