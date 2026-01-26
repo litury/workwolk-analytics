@@ -82,12 +82,12 @@ export interface IAnalytics {
   companySizeDistribution: Array<{ size: string; count: number }>;
   contractTypeDistribution: Array<{ type: string; count: number }>;
   topIndustries: Array<{ industry: string; count: number; avgSalary: number }>;
-  // === SALARY METRICS (базовые поля) ===
-  salaryByExperience: Array<{
-    experience: string;
+  // === SALARY METRICS (AI-enriched) ===
+  salaryBySeniority: Array<{
+    level: string;
     count: number;
-    avgFrom: number;
-    avgTo: number;
+    avgMin: number;
+    avgMax: number;
     p25: number;
     p50: number;
     p75: number;

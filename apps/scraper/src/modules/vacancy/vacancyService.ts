@@ -5,7 +5,7 @@
 
 import { db } from '../../shared/db/client';
 import { sources, vacancies, type NewVacancy, type Vacancy, type Source } from '../../shared/db/schema';
-import { eq, desc, and, gte, sql } from 'drizzle-orm';
+import { eq, desc, and, gte, sql, isNotNull } from 'drizzle-orm';
 import { scrapeVacanciesAsync, type ISearchParams, type IScrapedVacancy } from '../hh';
 import { createLogger } from '../../shared/utils/logger';
 
@@ -331,12 +331,12 @@ export interface IAnalytics {
   companySizeDistribution: Array<{ size: string; count: number }>;
   contractTypeDistribution: Array<{ type: string; count: number }>;
   topIndustries: Array<{ industry: string; count: number; avgSalary: number }>;
-  // === SALARY METRICS (базовые поля) ===
-  salaryByExperience: Array<{
-    experience: string;
+  // === SALARY METRICS (AI-enriched) ===
+  salaryBySeniority: Array<{
+    level: string;  // junior, middle, senior, lead, principal
     count: number;
-    avgFrom: number;
-    avgTo: number;
+    avgMin: number;
+    avgMax: number;
     p25: number;
     p50: number;
     p75: number;
@@ -352,32 +352,36 @@ export interface IAnalytics {
  * Получить агрегированные аналитические данные
  */
 export async function getAnalyticsAsync(): Promise<IAnalytics> {
-  // Общее количество вакансий
+  // Общее количество вакансий (только AI-enriched)
   const [totalResult] = await db.select({ count: sql<number>`count(*)` })
-    .from(vacancies);
+    .from(vacancies)
+    .where(isNotNull(vacancies.aiEnrichedAt));
   const totalVacancies = Number(totalResult?.count ?? 0);
 
-  // Количество удаленных вакансий
+  // Количество удаленных вакансий (только AI-enriched)
   const [remoteResult] = await db.select({ count: sql<number>`count(*)` })
     .from(vacancies)
-    .where(eq(vacancies.remote, true));
+    .where(and(
+      eq(vacancies.remote, true),
+      isNotNull(vacancies.aiEnrichedAt)
+    ));
   const remoteVacancies = Number(remoteResult?.count ?? 0);
 
-  // Средняя зарплата (от)
-  const [avgFromResult] = await db.select({
-    avg: sql<number>`avg(${vacancies.salaryFrom})`
-  })
-    .from(vacancies)
-    .where(sql`${vacancies.salaryFrom} IS NOT NULL`);
-  const averageSalaryFrom = avgFromResult?.avg ? Math.round(Number(avgFromResult.avg)) : null;
+  // Средняя зарплата (из AI salary_recommendation)
+  const [avgSalaryResult] = await db.execute<{
+    avg_min: string;
+    avg_max: string;
+  }>(sql`
+    SELECT
+      ROUND(AVG((salary_recommendation->>'min')::numeric)) as avg_min,
+      ROUND(AVG((salary_recommendation->>'max')::numeric)) as avg_max
+    FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL
+      AND salary_recommendation IS NOT NULL
+  `);
 
-  // Средняя зарплата (до)
-  const [avgToResult] = await db.select({
-    avg: sql<number>`avg(${vacancies.salaryTo})`
-  })
-    .from(vacancies)
-    .where(sql`${vacancies.salaryTo} IS NOT NULL`);
-  const averageSalaryTo = avgToResult?.avg ? Math.round(Number(avgToResult.avg)) : null;
+  const averageSalaryFrom = avgSalaryResult?.avg_min ? Number(avgSalaryResult.avg_min) : null;
+  const averageSalaryTo = avgSalaryResult?.avg_max ? Number(avgSalaryResult.avg_max) : null;
 
   // Топ навыков (распаковываем JSONB массив и считаем)
   const topSkillsResult = await db.execute<{ skill: string; count: number }>(sql`
@@ -703,68 +707,71 @@ export async function getAnalyticsAsync(): Promise<IAnalytics> {
       }))
     : [];
 
-  // === SALARY METRICS (базовые поля) ===
+  // === SALARY METRICS (AI-enriched) ===
 
-  // Salary analysis by experience level
-  const salaryByExpResult = await db.execute<{
-    experience: string;
+  // Salary analysis by seniority level (AI-enriched)
+  const salaryBySeniorityResult = await db.execute<{
+    seniority_level: string;
     count: string;
-    avg_from: string;
-    avg_to: string;
+    avg_min: string;
+    avg_max: string;
     p25: string;
     p50: string;
     p75: string;
   }>(sql`
     SELECT
-      experience,
+      seniority_level,
       COUNT(*) as count,
-      ROUND(AVG(salary_from)) as avg_from,
-      ROUND(AVG(salary_to)) as avg_to,
-      ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY salary_from)) as p25,
-      ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY salary_from)) as p50,
-      ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY salary_from)) as p75
+      ROUND(AVG((salary_recommendation->>'min')::numeric)) as avg_min,
+      ROUND(AVG((salary_recommendation->>'max')::numeric)) as avg_max,
+      ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p25,
+      ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p50,
+      ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY (salary_recommendation->>'min')::numeric)) as p75
     FROM ${vacancies}
-    WHERE salary_from IS NOT NULL
-      AND salary_to IS NOT NULL
-      AND currency = 'RUB'
-    GROUP BY experience
+    WHERE ai_enriched_at IS NOT NULL
+      AND seniority_level IS NOT NULL
+      AND salary_recommendation IS NOT NULL
+    GROUP BY seniority_level
     ORDER BY
-      CASE experience
-        WHEN 'noExperience' THEN 1
-        WHEN '1-3' THEN 2
-        WHEN '3-6' THEN 3
-        WHEN '6+' THEN 4
-        ELSE 5
+      CASE seniority_level
+        WHEN 'junior' THEN 1
+        WHEN 'middle' THEN 2
+        WHEN 'senior' THEN 3
+        WHEN 'lead' THEN 4
+        WHEN 'principal' THEN 5
+        ELSE 6
       END
   `);
 
-  const salaryByExperience = Array.isArray(salaryByExpResult)
-    ? salaryByExpResult.map(row => ({
-        experience: row.experience || 'Не указано',
+  const salaryBySeniority = Array.isArray(salaryBySeniorityResult)
+    ? salaryBySeniorityResult.map(row => ({
+        level: row.seniority_level,
         count: Number(row.count),
-        avgFrom: Number(row.avg_from || 0),
-        avgTo: Number(row.avg_to || 0),
+        avgMin: Number(row.avg_min || 0),
+        avgMax: Number(row.avg_max || 0),
         p25: Number(row.p25 || 0),
         p50: Number(row.p50 || 0),
         p75: Number(row.p75 || 0),
       }))
     : [];
 
-  // Salary distribution (с зарплатой vs без)
+  // Salary distribution (AI-enriched вакансии с/без salaryRecommendation)
   const [salaryStatsResult] = await db.execute<{
     with_salary: string;
     without_salary: string;
   }>(sql`
     SELECT
-      COUNT(CASE WHEN salary_from IS NOT NULL THEN 1 END) as with_salary,
-      COUNT(CASE WHEN salary_from IS NULL THEN 1 END) as without_salary
+      COUNT(CASE WHEN salary_recommendation IS NOT NULL THEN 1 END) as with_salary,
+      COUNT(CASE WHEN salary_recommendation IS NULL THEN 1 END) as without_salary
     FROM ${vacancies}
+    WHERE ai_enriched_at IS NOT NULL
   `);
 
   const withSalary = Number(salaryStatsResult?.with_salary || 0);
   const withoutSalary = Number(salaryStatsResult?.without_salary || 0);
-  const percentWithSalary = totalVacancies > 0
-    ? Math.round((withSalary / totalVacancies) * 100)
+  const totalAiEnriched = withSalary + withoutSalary;
+  const percentWithSalary = totalAiEnriched > 0
+    ? Math.round((withSalary / totalAiEnriched) * 100)
     : 0;
 
   const salaryDistribution = {
@@ -795,7 +802,7 @@ export async function getAnalyticsAsync(): Promise<IAnalytics> {
     companySizeDistribution,
     contractTypeDistribution,
     topIndustries,
-    salaryByExperience,
+    salaryBySeniority,
     salaryDistribution,
   };
 }

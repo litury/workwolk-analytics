@@ -224,7 +224,13 @@ Return ONLY valid JSON array, no markdown, no explanations.`;
     // Validate each result
     const validated = aiResults.map((r: any, i: number) => {
       try {
-        return AIAnalysisSchema.parse(r);
+        // Fix: Gemini sometimes returns "null" string instead of null
+        // Convert all "null" strings to actual null
+        const cleaned = JSON.parse(JSON.stringify(r, (key, value) =>
+          value === "null" ? null : value
+        ));
+
+        return AIAnalysisSchema.parse(cleaned);
       } catch (error) {
         console.log(`\n❌ Validation failed for vacancy ${i + 1}`);
         console.log('Raw AI response:', JSON.stringify(r, null, 2));

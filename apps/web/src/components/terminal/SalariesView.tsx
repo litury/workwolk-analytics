@@ -2,11 +2,12 @@ import { motion } from 'framer-motion'
 import type { BaseViewProps } from '@/types/terminal'
 import { formatLargeNumber } from '@/lib/utils/formatters'
 
-const EXPERIENCE_LABELS: Record<string, string> = {
-  'noExperience': 'Без опыта',
-  '1-3': 'Junior (1-3 года)',
-  '3-6': 'Middle (3-6 лет)',
-  '6+': 'Senior (6+ лет)',
+const SENIORITY_LABELS: Record<string, string> = {
+  'junior': 'Junior',
+  'middle': 'Middle',
+  'senior': 'Senior',
+  'lead': 'Team Lead',
+  'principal': 'Principal',
 }
 
 export default function SalariesView({ analytics, loading }: BaseViewProps) {
@@ -20,12 +21,11 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
     )
   }
 
-  // Приоритет: базовые данные (salaryByExperience) ВСЕГДА
-  const salaryData = analytics.salaryByExperience || []
+  // Приоритет: AI-enriched данные (salaryBySeniority) ВСЕГДА
+  const salaryData = analytics.salaryBySeniority || []
   const hasData = salaryData.length > 0
 
-  // Показывать enriched данные только если их достаточно
-  const hasEnrichedData = analytics.salaryPercentiles?.bySeniority && analytics.salaryPercentiles.bySeniority.length >= 3
+  // Top Companies (enriched данные)
   const topCompanies = analytics.topCompanies?.slice(0, 5) || []
 
   return (
@@ -53,22 +53,22 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
         </div>
       </div>
 
-      {/* Section 2: Salary by Experience (ОСНОВНОЕ) */}
+      {/* Section 2: Salary by Seniority (ОСНОВНОЕ) */}
       {hasData ? (
         <div className="space-y-3">
-          <div className="text-[var(--text-muted)] text-[9px]">SALARY_BY_EXPERIENCE</div>
+          <div className="text-[var(--text-muted)] text-[9px]">SALARY_BY_SENIORITY</div>
           {salaryData.map((level, index) => (
             <motion.div
-              key={level.experience}
+              key={level.level}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.08 }}
               className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] space-y-2"
             >
-              {/* Experience Level Header */}
+              {/* Seniority Level Header */}
               <div className="flex items-center justify-between">
                 <span className="text-[var(--text-primary)] font-bold text-xs">
-                  {EXPERIENCE_LABELS[level.experience] || level.experience}
+                  {SENIORITY_LABELS[level.level] || level.level}
                 </span>
                 <span className="text-[var(--text-muted)] text-[9px]">
                   {formatLargeNumber(level.count)} вакансий
@@ -99,9 +99,9 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
 
               {/* Average Range */}
               <div className="text-[var(--text-muted)] text-[9px] pt-1 border-t border-[var(--border-color)]">
-                Средняя вилка:{' '}
+                AI рекомендация:{' '}
                 <span className="text-[var(--text-primary)]">
-                  {Math.round(level.avgFrom / 1000)}K – {Math.round(level.avgTo / 1000)}K ₽
+                  {Math.round(level.avgMin / 1000)}K – {Math.round(level.avgMax / 1000)}K ₽
                 </span>
               </div>
             </motion.div>
@@ -110,7 +110,7 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
       ) : (
         <div className="border border-[var(--border-color)] p-4 bg-[var(--bg-secondary)] text-center">
           <div className="text-[var(--text-muted)]">
-            Недостаточно данных о зарплатах по уровням опыта
+            Недостаточно AI-обогащенных данных о зарплатах по уровням seniority
           </div>
         </div>
       )}
@@ -150,45 +150,6 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
         </div>
       )}
 
-      {/* Section 4: Enriched Percentiles (опционально, если есть достаточно данных) */}
-      {hasEnrichedData && (
-        <div className="space-y-3 border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-          <div className="flex items-center gap-2">
-            <div className="text-[var(--text-muted)] text-[9px]">AI_ENRICHED_DATA</div>
-            <div className="text-[8px] px-1 border border-[var(--accent-cyan)] text-[var(--accent-cyan)]">
-              BETA
-            </div>
-          </div>
-          {analytics.salaryPercentiles.bySeniority.map((level) => (
-            <div key={level.level} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--text-primary)] uppercase font-bold">{level.level}</span>
-                <span className="text-[var(--text-muted)] text-[9px]">{formatLargeNumber(level.count)}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div>
-                  <div className="text-[var(--text-muted)] text-[8px]">P25</div>
-                  <div className="text-[var(--text-primary)] font-bold">
-                    {Math.round(level.p25 / 1000)}K
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[var(--text-muted)] text-[8px]">P50</div>
-                  <div className="text-[var(--accent-cyan)] font-bold neon-glow">
-                    {Math.round(level.p50 / 1000)}K
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[var(--text-muted)] text-[8px]">P75</div>
-                  <div className="text-[var(--text-secondary)] font-bold">
-                    {Math.round(level.p75 / 1000)}K
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
