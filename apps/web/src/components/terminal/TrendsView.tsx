@@ -19,8 +19,11 @@ export default function TrendsView({ analytics, loading }: BaseViewProps) {
   }
 
   const topSkills = analytics.topSkills?.slice(0, 5) || []
-  const workFormats = analytics.workFormatDistribution || []
+  // workFormatDistribution отсутствует в IAnalytics, скрыто до добавления в API
+  const workFormats: any[] = [] // analytics.workFormatDistribution || []
   const seniority = analytics.seniorityDistribution || []
+  // aiAdoptionRate отсутствует в IAnalytics
+  const aiAdoptionRate = 0 // aiAdoptionRate
 
   const remoteFormat = workFormats.find(f =>
     f.format.toLowerCase().includes('remote') || f.format.toLowerCase().includes('удален')
@@ -74,7 +77,7 @@ export default function TrendsView({ analytics, loading }: BaseViewProps) {
             </Text>
             <div className="text-center">
               <div className="text-5xl font-bold text-accent-primary">
-                {analytics.aiAdoptionRate || 0}%
+                {aiAdoptionRate}%
               </div>
               <Text size="xs" color="tertiary" className="mt-2">
                 вакансий требуют AI навыки
@@ -83,7 +86,7 @@ export default function TrendsView({ analytics, loading }: BaseViewProps) {
             <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
               <div
                 className="h-full bg-accent-primary transition-all duration-1000"
-                style={{ width: `${Math.min(analytics.aiAdoptionRate || 0, 100)}%` }}
+                style={{ width: `${Math.min(aiAdoptionRate, 100)}%` }}
               />
             </div>
           </div>

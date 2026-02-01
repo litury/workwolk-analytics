@@ -167,8 +167,8 @@ export default function StatusView({ analytics, loading, error }: StatusViewProp
         </motion.div>
       )}
 
-      {/* Work Format Distribution */}
-      {analytics.workFormatDistribution && analytics.workFormatDistribution.length > 0 && (
+      {/* Work Format Distribution - закомментировано, поле отсутствует в IAnalytics */}
+      {/* {analytics.workFormatDistribution && analytics.workFormatDistribution.length > 0 && (
         <motion.div variants={item}>
           <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
             Формат работы
@@ -193,10 +193,10 @@ export default function StatusView({ analytics, loading, error }: StatusViewProp
             })}
           </div>
         </motion.div>
-      )}
+      )} */}
 
-      {/* Contract Type Distribution */}
-      {analytics.contractTypeDistribution && analytics.contractTypeDistribution.length > 0 && (
+      {/* Contract Type Distribution - закомментировано, поле отсутствует в IAnalytics */}
+      {/* {analytics.contractTypeDistribution && analytics.contractTypeDistribution.length > 0 && (
         <motion.div variants={item}>
           <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
             Тип контракта
@@ -221,10 +221,10 @@ export default function StatusView({ analytics, loading, error }: StatusViewProp
             })}
           </div>
         </motion.div>
-      )}
+      )} */}
 
-      {/* Company Size Distribution */}
-      {analytics.companySizeDistribution && analytics.companySizeDistribution.length > 0 && (
+      {/* Company Size Distribution - закомментировано, поле отсутствует в IAnalytics */}
+      {/* {analytics.companySizeDistribution && analytics.companySizeDistribution.length > 0 && (
         <motion.div variants={item}>
           <Card variant="default" padding="lg">
             <Heading level="h3" weight="medium" color="primary" className="mb-6 uppercase tracking-wide">
@@ -252,7 +252,7 @@ export default function StatusView({ analytics, loading, error }: StatusViewProp
             </div>
           </Card>
         </motion.div>
-      )}
+      )} */}
     </motion.div>
   )
 }

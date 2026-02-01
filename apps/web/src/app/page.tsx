@@ -7,19 +7,15 @@ import type { TerminalView } from '@/types/terminal'
 import { Container } from '@/components/ui'
 import { Navigation } from '@/components/ui/Navigation'
 import HomeView from '@/components/terminal/HomeView'
-import StatusView from '@/components/terminal/StatusView'
 import VacanciesView from '@/components/terminal/VacanciesView'
 import SalariesView from '@/components/terminal/SalariesView'
 import SkillsView from '@/components/terminal/SkillsView'
-import TrendsView from '@/components/terminal/TrendsView'
 
 const views = [
   { id: 'home', label: 'Главная' },
   { id: 'vacancies', label: 'Вакансии' },
   { id: 'salaries', label: 'Зарплаты' },
   { id: 'skills', label: 'Навыки' },
-  { id: 'trends', label: 'Тренды' },
-  { id: 'status', label: 'Статистика' },
 ] as const
 
 export default function Home() {
@@ -27,7 +23,6 @@ export default function Home() {
   const [analytics, setAnalytics] = useState<IAnalytics | null>(null)
   const [vacancies, setVacancies] = useState<IVacancy[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,7 +35,7 @@ export default function Home() {
         setAnalytics(analyticsData)
         setVacancies(vacanciesData.data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data')
+        console.error('Failed to fetch data:', err)
       } finally {
         setLoading(false)
       }
@@ -70,17 +65,6 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
               >
                 <HomeView analytics={analytics} loading={loading} />
-              </motion.div>
-            )}
-            {activeView === 'status' && (
-              <motion.div
-                key="status"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <StatusView analytics={analytics} loading={loading} error={error} />
               </motion.div>
             )}
             {activeView === 'vacancies' && (
@@ -114,17 +98,6 @@ export default function Home() {
                 transition={{ duration: 0.3 }}
               >
                 <SkillsView analytics={analytics} loading={loading} />
-              </motion.div>
-            )}
-            {activeView === 'trends' && (
-              <motion.div
-                key="trends"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TrendsView analytics={analytics} loading={loading} />
               </motion.div>
             )}
           </AnimatePresence>

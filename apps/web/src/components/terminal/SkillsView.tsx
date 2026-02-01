@@ -18,12 +18,7 @@ export default function SkillsView({ analytics, loading }: BaseViewProps) {
     )
   }
 
-  const hasTechStackDetailed = analytics.techStackDetailed && analytics.techStackDetailed.length > 0
-  const topTech = hasTechStackDetailed
-    ? analytics.techStackDetailed.slice(0, 15)
-    : analytics.topTechStack?.slice(0, 12) || []
-  const aiAdoption = analytics.aiAdoptionByCategory?.slice(0, 5) || []
-
+  const topTech = analytics.topTechStack || []
   const maxTechCount = Math.max(...topTech.map((t: any) => t.count), 1)
 
   const container = {
@@ -65,7 +60,7 @@ export default function SkillsView({ analytics, loading }: BaseViewProps) {
             </Heading>
             <div className="flex flex-wrap gap-3 justify-center">
               {topTech.map((tech: any, index: number) => {
-                const techName = hasTechStackDetailed ? tech.name : tech.tech
+                const techName = tech.tech
                 const percentage = maxTechCount > 0 ? (tech.count / maxTechCount) * 100 : 0
                 const sizeClass = percentage > 70 ? 'text-2xl' : percentage > 50 ? 'text-xl' : percentage > 30 ? 'text-lg' : 'text-base'
 
@@ -105,56 +100,6 @@ export default function SkillsView({ analytics, loading }: BaseViewProps) {
               })}
             </div>
           </Card>
-        </motion.div>
-      )}
-
-      {/* AI Adoption */}
-      {aiAdoption.length > 0 && (
-        <motion.div variants={item}>
-          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
-            AI & Machine Learning по категориям
-          </Heading>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {aiAdoption.map((cat: any, index: number) => {
-              const adoptionPercent = analytics.totalVacancies > 0
-                ? (cat.count / analytics.totalVacancies) * 100
-                : 0
-
-              return (
-                <motion.div
-                  key={cat.category}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.06, duration: 0.3 }}
-                >
-                  <Card variant="default" padding="lg" hover="lift">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Text size="sm" weight="bold" color="primary" className="uppercase">
-                          {cat.category}
-                        </Text>
-                        <Text size="lg" weight="bold" color="accent" className="font-medium">
-                          {adoptionPercent.toFixed(1)}%
-                        </Text>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="w-full bg-background-tertiary rounded-full h-2 overflow-hidden">
-                          <div
-                            className="h-full bg-accent-primary transition-all duration-500"
-                            style={{ width: `${Math.min(adoptionPercent, 100)}%` }}
-                          />
-                        </div>
-                        <Text size="xs" color="secondary">
-                          {formatLargeNumber(cat.count)} вакансий с AI требованиями
-                        </Text>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              )
-            })}
-          </div>
         </motion.div>
       )}
 

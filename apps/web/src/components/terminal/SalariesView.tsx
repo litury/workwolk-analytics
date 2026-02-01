@@ -28,7 +28,8 @@ export default function SalariesView({ analytics, loading }: BaseViewProps) {
 
   const salaryData = analytics.salaryBySeniority || []
   const hasData = salaryData.length > 0
-  const topCompanies = analytics.topCompanies?.slice(0, 5) || []
+  // topCompanies поле отсутствует в IAnalytics, скрыто до добавления в API
+  const topCompanies: any[] = [] // analytics.topCompanies?.slice(0, 5) || []
 
   const container = {
     hidden: { opacity: 0 },

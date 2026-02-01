@@ -9,13 +9,6 @@ export interface BaseViewProps {
 }
 
 /**
- * Props for StatusView component
- */
-export interface StatusViewProps extends BaseViewProps {
-  error: string | null
-}
-
-/**
  * Props for VacanciesView component
  */
 export interface VacanciesViewProps extends BaseViewProps {
@@ -23,6 +16,13 @@ export interface VacanciesViewProps extends BaseViewProps {
 }
 
 /**
+ * Props for StatusView component
+ */
+export interface StatusViewProps extends BaseViewProps {
+  error: string | null
+}
+
+/**
  * Terminal view type union
  */
-export type TerminalView = 'home' | 'status' | 'vacancies' | 'salaries' | 'skills' | 'trends' | 'game'
+export type TerminalView = 'home' | 'vacancies' | 'salaries' | 'skills' | 'trends' | 'status'
