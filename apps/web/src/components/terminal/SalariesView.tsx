@@ -1,6 +1,8 @@
+'use client'
 import { motion } from 'framer-motion'
 import type { BaseViewProps } from '@/types/terminal'
 import { formatLargeNumber } from '@/lib/utils/formatters'
+import { Card, Heading, Text } from '@/components/ui'
 
 const SENIORITY_LABELS: Record<string, string> = {
   'junior': 'Junior',
@@ -13,143 +15,180 @@ const SENIORITY_LABELS: Record<string, string> = {
 export default function SalariesView({ analytics, loading }: BaseViewProps) {
   if (loading || !analytics) {
     return (
-      <div className="font-mono text-xs md:text-sm space-y-4">
-        <div className="text-[var(--text-secondary)] pulse">
-          [LOADING...] Анализ зарплат...
+      <div className="space-y-6">
+        <div className="h-32 bg-background-secondary rounded-card animate-pulse"></div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-24 bg-background-secondary rounded-card animate-pulse"></div>
+          ))}
         </div>
       </div>
     )
   }
 
-  // Приоритет: AI-enriched данные (salaryBySeniority) ВСЕГДА
   const salaryData = analytics.salaryBySeniority || []
   const hasData = salaryData.length > 0
-
-  // Top Companies (enriched данные)
   const topCompanies = analytics.topCompanies?.slice(0, 5) || []
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 }
+    }
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  }
+
   return (
-    <div className="font-mono text-xs md:text-sm space-y-4">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-[var(--text-secondary)] text-xs">[SALARIES]</span>
-        <span className="text-[var(--accent-cyan)] neon-glow text-xs">MARKET</span>
-      </div>
+      <motion.div variants={item}>
+        <Heading level="h2" weight="bold" color="primary" className="uppercase tracking-wide">
+          Зарплатная аналитика
+        </Heading>
+        <Text size="sm" color="secondary" className="mt-2">
+          Средние зарплаты по уровням
+        </Text>
+      </motion.div>
 
-      {/* Section 1: Salary Coverage Info */}
-      <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-        <div className="text-[var(--text-muted)] text-[9px] mb-2">SALARY_COVERAGE</div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-[var(--accent-cyan)] neon-glow">
-            {formatLargeNumber(analytics.salaryDistribution.withSalary)}
-          </span>
-          <span className="text-[var(--text-muted)]">/ {formatLargeNumber(analytics.totalVacancies)}</span>
-          <span className="text-[var(--text-secondary)] ml-2">
-            ({analytics.salaryDistribution.percentWithSalary}%)
-          </span>
-        </div>
-        <div className="text-[var(--text-muted)] text-[9px] mt-1">
-          вакансий с указанной зарплатой
-        </div>
-      </div>
-
-      {/* Section 2: Salary by Seniority (ОСНОВНОЕ) */}
-      {hasData ? (
-        <div className="space-y-3">
-          <div className="text-[var(--text-muted)] text-[9px]">SALARY_BY_SENIORITY</div>
-          {salaryData.map((level, index) => (
-            <motion.div
-              key={level.level}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.08 }}
-              className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] space-y-2"
-            >
-              {/* Seniority Level Header */}
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--text-primary)] font-bold text-xs">
-                  {SENIORITY_LABELS[level.level] || level.level}
-                </span>
-                <span className="text-[var(--text-muted)] text-[9px]">
-                  {formatLargeNumber(level.count)} вакансий
-                </span>
-              </div>
-
-              {/* Percentiles */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="border-l-2 border-[var(--text-secondary)] pl-2">
-                  <div className="text-[var(--text-muted)] text-[8px]">P25</div>
-                  <div className="text-[var(--text-primary)] font-bold text-sm">
-                    {Math.round(level.p25 / 1000)}K
-                  </div>
+      {/* Salary Coverage */}
+      <motion.div variants={item}>
+        <Card variant="default" padding="lg" hover="glow">
+          <div className="flex items-center justify-between">
+            <div>
+              <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+                Покрытие данными
+              </Text>
+              <div className="flex items-baseline gap-3">
+                <div className="text-4xl font-bold text-accent-primary">
+                  {formatLargeNumber(analytics.salaryDistribution.withSalary)}
                 </div>
-                <div className="border-l-2 border-[var(--accent-cyan)] pl-2">
-                  <div className="text-[var(--text-muted)] text-[8px]">P50 (Медиана)</div>
-                  <div className="text-[var(--accent-cyan)] font-bold text-sm neon-glow">
-                    {Math.round(level.p50 / 1000)}K
-                  </div>
-                </div>
-                <div className="border-l-2 border-[var(--text-secondary)] pl-2">
-                  <div className="text-[var(--text-muted)] text-[8px]">P75</div>
-                  <div className="text-[var(--text-primary)] font-bold text-sm">
-                    {Math.round(level.p75 / 1000)}K
-                  </div>
-                </div>
+                <Text size="lg" color="tertiary">
+                  / {formatLargeNumber(analytics.totalVacancies)}
+                </Text>
               </div>
-
-              {/* Average Range */}
-              <div className="text-[var(--text-muted)] text-[9px] pt-1 border-t border-[var(--border-color)]">
-                AI рекомендация:{' '}
-                <span className="text-[var(--text-primary)]">
-                  {Math.round(level.avgMin / 1000)}K – {Math.round(level.avgMax / 1000)}K ₽
-                </span>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-text-primary">
+                {analytics.salaryDistribution.percentWithSalary}%
               </div>
-            </motion.div>
-          ))}
-        </div>
-      ) : (
-        <div className="border border-[var(--border-color)] p-4 bg-[var(--bg-secondary)] text-center">
-          <div className="text-[var(--text-muted)]">
-            Недостаточно AI-обогащенных данных о зарплатах по уровням seniority
+              <Text size="xs" color="secondary" className="mt-1">
+                вакансий с зарплатой
+              </Text>
+            </div>
           </div>
-        </div>
+        </Card>
+      </motion.div>
+
+      {/* Salary by Seniority */}
+      {hasData ? (
+        <motion.div variants={item}>
+          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
+            По уровням сениорности
+          </Heading>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {salaryData.map((level, index) => (
+              <motion.div
+                key={level.level}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.08, duration: 0.3 }}
+              >
+                <Card variant="default" padding="lg" hover="lift">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Text size="sm" weight="bold" color="primary" className="uppercase">
+                        {SENIORITY_LABELS[level.level] || level.level}
+                      </Text>
+                      <Text size="xs" color="tertiary">
+                        {formatLargeNumber(level.count)} вакансий
+                      </Text>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <Text size="xs" color="secondary">Средняя:</Text>
+                        <Text size="lg" weight="bold" color="accent" className="font-medium">
+                          {Math.round(((level.avgMin + level.avgMax) / 2) / 1000)}K ₽
+                        </Text>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm">
+                        <div>
+                          <Text size="xs" color="tertiary">От</Text>
+                          <Text size="sm" weight="medium" color="primary">
+                            {Math.round(level.avgMin / 1000)}K
+                          </Text>
+                        </div>
+                        <div className="flex-1 h-1 bg-linear-to-r from-background-tertiary via-accent-primary to-background-tertiary rounded-full"></div>
+                        <div className="text-right">
+                          <Text size="xs" color="tertiary">До</Text>
+                          <Text size="sm" weight="medium" color="primary">
+                            {Math.round(level.avgMax / 1000)}K
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div variants={item}>
+          <Card variant="bordered" padding="lg">
+            <Text color="secondary" className="text-center">
+              Недостаточно данных о зарплатах для анализа
+            </Text>
+          </Card>
+        </motion.div>
       )}
 
-      {/* Section 3: Top Companies (если есть enriched данные) */}
-      {topCompanies.length >= 3 && (
-        <div className="space-y-3">
-          <div className="text-[var(--text-muted)] text-[9px]">TOP_COMPANIES (enriched)</div>
-          {topCompanies.map((company, index) => (
-            <motion.div
-              key={company.company}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.08 }}
-              className="flex items-center justify-between text-xs border-l-2 border-[var(--accent-cyan)] pl-3 py-1"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="text-[var(--text-primary)]">{company.company}</span>
-                <div className="flex items-center gap-2">
-                  {company.type && (
-                    <span className="text-[var(--text-muted)] text-[8px] px-1 border border-[var(--border-color)]">
-                      {company.type}
-                    </span>
-                  )}
-                  <span className="text-[var(--text-muted)] text-[8px]">
-                    {company.vacancies} вак. / {company.categories} кат.
-                  </span>
+      {/* Top Companies */}
+      {topCompanies.length > 0 && (
+        <motion.div variants={item}>
+          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
+            Топ компании по зарплатам
+          </Heading>
+          <div className="space-y-3">
+            {topCompanies.map((company, index) => (
+              <Card key={company.company} variant="default" padding="lg" hover="lift">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl font-bold text-accent-primary">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <Text size="base" weight="bold" color="primary">
+                        {company.company}
+                      </Text>
+                      <Text size="xs" color="secondary">
+                        {formatLargeNumber(company.vacancies)} вакансий
+                      </Text>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Text size="lg" weight="bold" color="accent" className="font-medium">
+                      {Math.round(((company.avgMinSalary + company.avgMaxSalary) / 2) / 1000)}K ₽
+                    </Text>
+                    <Text size="xs" color="tertiary">средняя зарплата</Text>
+                  </div>
                 </div>
-              </div>
-              <div className="text-[var(--accent-cyan)] text-[9px] text-right">
-                {company.avgMinSalary > 0 ? (
-                  <>{Math.round(company.avgMinSalary / 1000)}-{Math.round(company.avgMaxSalary / 1000)}K</>
-                ) : 'N/A'}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
       )}
-
-    </div>
+    </motion.div>
   )
 }

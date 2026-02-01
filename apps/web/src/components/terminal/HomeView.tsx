@@ -2,115 +2,173 @@
 import { motion } from 'framer-motion'
 import type { BaseViewProps } from '@/types/terminal'
 import { formatLargeNumber, formatRelativeTime } from '@/lib/utils/formatters'
+import { Card, Heading, Text } from '@/components/ui'
 
 export default function HomeView({ analytics, loading }: BaseViewProps) {
   if (loading) {
     return (
-      <div className="font-mono text-xs md:text-sm space-y-6">
-        <div className="h-8 bg-[var(--bg-secondary)] pulse w-48"></div>
-        <div className="h-32 bg-[var(--bg-secondary)] pulse"></div>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-8">
+        <div className="h-24 bg-background-secondary rounded-card animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-20 bg-[var(--bg-secondary)] pulse"></div>
+            <div key={i} className="h-32 bg-background-secondary rounded-card animate-pulse"></div>
           ))}
         </div>
+        <div className="h-48 bg-background-secondary rounded-card animate-pulse"></div>
       </div>
     )
   }
+
+  const topSkills = analytics?.topSkills?.slice(0, 12) || []
 
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { staggerChildren: 0.08 }
     }
   }
 
   const item = {
-    hidden: { opacity: 0, y: 10 },
-    show: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   }
-
-  // Всегда используем topSkills на главной (базовые данные из всех вакансий)
-  const topSkills = analytics?.topSkills?.slice(0, 10) || []
 
   return (
     <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="font-mono text-xs md:text-sm space-y-8"
+      className="space-y-12"
     >
-      {/* Hero Section - Крупный ASCII Logo */}
-      <motion.div variants={item} className="text-center py-6 md:py-8">
-        <pre className="text-[var(--accent-cyan)] neon-glow text-[8px] md:text-xs leading-none md:leading-tight overflow-x-auto">
-{`██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██╗    ██╗ ██████╗ ██╗     ██╗  ██╗
-██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██║    ██║██╔═══██╗██║     ██║ ██╔╝
-██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ██║ █╗ ██║██║   ██║██║     █████╔╝
-██║███╗██║██║   ██║██╔══██╗██╔═██╗ ██║███╗██║██║   ██║██║     ██╔═██╗
-╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗╚███╔███╔╝╚██████╔╝███████╗██║  ██╗
- ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝`}
-        </pre>
-        <div className="mt-4 text-[var(--text-muted)] text-xs md:text-sm">
-          АГРЕГАТОР ДАННЫХ IT РЫНКА
-        </div>
+      {/* Hero Section - Minimalist */}
+      <motion.div variants={item} className="text-center py-12">
+        <Heading
+          level="h1"
+          weight="bold"
+          color="primary"
+          className="text-5xl md:text-6xl mb-4"
+        >
+          IT ANALYTICS
+        </Heading>
+        <Text
+          size="lg"
+          color="secondary"
+          className="uppercase tracking-wide"
+        >
+          Аналитика IT рынка в реальном времени
+        </Text>
       </motion.div>
 
-      {/* Top Skills Section - базовые данные из всех вакансий */}
+      {/* Key Metrics Grid */}
+      <motion.div
+        variants={item}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <Card
+          variant="default"
+          padding="lg"
+          hover="lift"
+          className="text-center"
+        >
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+            Всего вакансий
+          </Text>
+          <div className="text-4xl font-bold text-accent-primary">
+            {formatLargeNumber(analytics?.totalVacancies || 0)}
+          </div>
+        </Card>
+
+        <Card
+          variant="default"
+          padding="lg"
+          hover="lift"
+          className="text-center"
+        >
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+            Удалённая работа
+          </Text>
+          <div className="text-4xl font-bold text-text-primary">
+            {analytics ? Math.round((analytics.remoteVacancies / analytics.totalVacancies) * 100) : 0}%
+          </div>
+        </Card>
+
+        <Card
+          variant="default"
+          padding="lg"
+          hover="lift"
+          className="text-center"
+        >
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+            Активные источники
+          </Text>
+          <div className="text-4xl font-bold text-text-primary">
+            {analytics?.activeSources || 0}<Text as="span" size="xl" color="tertiary">/3</Text>
+          </div>
+        </Card>
+
+        <Card
+          variant="default"
+          padding="lg"
+          hover="lift"
+          className="text-center"
+        >
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+            Последнее обновление
+          </Text>
+          <div className="text-lg font-medium text-text-primary pt-2">
+            {analytics?.lastScrapedAt ? formatRelativeTime(analytics.lastScrapedAt) : 'N/A'}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Top Skills - Tag Cloud */}
       <motion.div variants={item}>
-        <div className="text-[var(--text-muted)] text-[9px] mb-3 text-center">
-          TOP SKILLS
-        </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <Heading
+          level="h3"
+          weight="medium"
+          color="primary"
+          className="mb-6 uppercase tracking-wide text-center"
+        >
+          Топ навыки
+        </Heading>
+        <div className="flex flex-wrap gap-3 justify-center">
           {topSkills.map((skill: any, index: number) => (
             <motion.div
               key={skill.skill}
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + index * 0.05 }}
-              className="px-3 py-2 border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:border-[var(--accent-cyan)] hover:box-glow transition-all"
+              transition={{ delay: 0.4 + index * 0.05, duration: 0.2 }}
+              whileHover={{ scale: 1.05 }}
             >
-              <span className="text-[var(--text-primary)] text-xs">{skill.skill}</span>
-              <span className="text-[var(--text-muted)] ml-2 text-[9px]">
-                ({formatLargeNumber(skill.count)})
-              </span>
+              <Card
+                variant="bordered"
+                padding="sm"
+                className="cursor-default hover:border-accent-primary transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <Text size="sm" weight="medium" color="primary">
+                    {skill.skill}
+                  </Text>
+                  <Text size="xs" color="accent" className="font-medium">
+                    {formatLargeNumber(skill.count)}
+                  </Text>
+                </div>
+              </Card>
             </motion.div>
           ))}
         </div>
       </motion.div>
 
-      {/* Quick Stats Grid */}
+      {/* Additional Info */}
       <motion.div variants={item}>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[9px] mb-1">TOTAL</div>
-            <div className="text-2xl md:text-3xl text-[var(--accent-cyan)] neon-glow">
-              {formatLargeNumber(analytics?.totalVacancies || 0)}
-            </div>
+        <Card variant="blur" padding="lg">
+          <div className="text-center">
+            <Text size="sm" color="secondary">
+              Данные обновляются автоматически каждые 24 часа из ведущих IT job-платформ
+            </Text>
           </div>
-
-          <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[9px] mb-1">REMOTE</div>
-            <div className="text-2xl md:text-3xl text-[var(--text-secondary)] neon-glow">
-              {analytics ? Math.round((analytics.remoteVacancies / analytics.totalVacancies) * 100) : 0}%
-            </div>
-          </div>
-
-          <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[9px] mb-1">SOURCES</div>
-            <div className="text-2xl md:text-3xl text-[var(--text-primary)]">
-              <span className="pulse mr-2">●</span>
-              {analytics?.activeSources || 0}/3
-            </div>
-          </div>
-
-          <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[9px] mb-1">SYNC</div>
-            <div className="text-sm text-[var(--text-primary)]">
-              {analytics?.lastScrapedAt ? formatRelativeTime(analytics.lastScrapedAt) : 'N/A'}
-            </div>
-          </div>
-        </div>
+        </Card>
       </motion.div>
     </motion.div>
   )

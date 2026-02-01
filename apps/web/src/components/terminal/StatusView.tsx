@@ -1,199 +1,258 @@
+'use client'
+import { motion } from 'framer-motion'
 import type { StatusViewProps } from '@/types/terminal'
 import { formatRelativeTime, formatLargeNumber, formatPercentage } from '@/lib/utils/formatters'
-import { createStatusTree, ProgressBar } from '@/lib/utils/terminal'
+import { Card, Heading, Text } from '@/components/ui'
+
+// Simple progress bar component
+function ProgressBar({ value, max, className = '' }: { value: number; max: number; className?: string }) {
+  const percent = max > 0 ? (value / max) * 100 : 0
+  return (
+    <div className="w-full bg-background-tertiary rounded-full h-2 overflow-hidden">
+      <div
+        className={`h-full bg-accent-primary transition-all duration-500 ${className}`}
+        style={{ width: `${Math.min(percent, 100)}%` }}
+      />
+    </div>
+  )
+}
 
 export default function StatusView({ analytics, loading, error }: StatusViewProps) {
   if (error) {
     return (
-      <div className="font-mono text-xs md:text-sm space-y-4">
-        <div className="text-[var(--accent-pink)] neon-glow-pink">
-          [ERROR] SYSTEM_FAILURE
+      <Card variant="bordered" padding="lg" className="border-red-500">
+        <div className="text-center space-y-4">
+          <Heading level="h3" color="primary">Ошибка загрузки данных</Heading>
+          <Text color="secondary">{error}</Text>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-accent-primary text-white rounded-button hover:bg-accent-secondary transition-all duration-200"
+          >
+            Обновить страницу
+          </button>
         </div>
-        <div className="text-[var(--text-muted)]">
-          {error}
-        </div>
-        <div className="text-[var(--text-secondary)]">
-          {'>'} Попробуйте обновить страницу
-        </div>
-      </div>
+      </Card>
     )
   }
 
   if (loading || !analytics) {
     return (
-      <div className="font-mono text-xs md:text-sm space-y-4">
-        <div className="text-[var(--text-secondary)] pulse">
-          [LOADING...] Инициализация системы...
-        </div>
-        <div className="space-y-2">
-          <div className="h-4 bg-[var(--border-color)] pulse w-3/4"></div>
-          <div className="h-4 bg-[var(--border-color)] pulse w-1/2"></div>
-          <div className="h-4 bg-[var(--border-color)] pulse w-2/3"></div>
+      <div className="space-y-6">
+        <div className="h-32 bg-background-secondary rounded-card animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-24 bg-background-secondary rounded-card animate-pulse"></div>
+          ))}
         </div>
       </div>
     )
   }
 
-  const remotePercent = analytics.totalVacancies > 0
-    ? (analytics.remoteVacancies / analytics.totalVacancies) * 100
-    : 0
-
-  const statusTreeItems = [
-    {
-      label: 'Database',
-      value: `ONLINE (${formatLargeNumber(analytics.totalVacancies)} records)`
-    },
-    {
-      label: 'Sources',
-      value: `${analytics.activeSources}/3 ACTIVE`
-    },
-    {
-      label: 'Last Sync',
-      value: formatRelativeTime(analytics.lastScrapedAt)
-    },
-    {
-      label: 'Remote Jobs',
-      value: formatPercentage(analytics.remoteVacancies, analytics.totalVacancies)
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 }
     }
-  ]
+  }
 
-  const treeLines = createStatusTree(statusTreeItems)
+  const item = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  }
 
   return (
-    <div className="font-mono text-xs md:text-sm space-y-4">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <span className="text-[var(--text-secondary)]">[SYSTEM STATUS]</span>
-        <span className="text-[var(--accent-cyan)] neon-glow">MONITOR_v1.0</span>
-      </div>
+      <motion.div variants={item}>
+        <Heading level="h2" weight="bold" color="primary" className="uppercase tracking-wide">
+          Системная аналитика
+        </Heading>
+        <Text size="sm" color="secondary" className="mt-2">
+          Последнее обновление: {formatRelativeTime(analytics.lastScrapedAt)}
+        </Text>
+      </motion.div>
 
-      {/* ASCII Status Tree - компактный */}
-      <div className="space-y-1 text-[var(--text-primary)] text-xs">
-        {treeLines.map((line, i) => (
-          <div key={i} className="text-[var(--text-primary)]">
-            {line}
+      {/* Status Cards */}
+      <motion.div
+        variants={item}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <Card variant="default" padding="lg" hover="glow">
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-3">
+            База данных
+          </Text>
+          <div className="flex items-end justify-between">
+            <div className="text-3xl font-bold text-accent-primary">
+              {formatLargeNumber(analytics.totalVacancies)}
+            </div>
+            <Text size="xs" color="tertiary">записей</Text>
           </div>
-        ))}
-      </div>
+        </Card>
 
-      {/* Quick Metrics Grid - компактный */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Total Vacancies */}
-        <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] flex flex-col justify-center">
-          <div className="text-[var(--text-muted)] text-[9px] mb-1">TOTAL</div>
-          <div className="text-xl md:text-3xl font-bold text-[var(--accent-cyan)] neon-glow">
-            {formatLargeNumber(analytics.totalVacancies)}
+        <Card variant="default" padding="lg" hover="glow">
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-3">
+            Удалённая работа
+          </Text>
+          <div className="text-3xl font-bold text-text-primary">
+            {formatPercentage(analytics.remoteVacancies, analytics.totalVacancies)}
           </div>
-        </div>
+        </Card>
 
-        {/* Remote Percentage */}
-        <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] flex flex-col justify-center">
-          <div className="text-[var(--text-muted)] text-[9px] mb-1">REMOTE</div>
-          <div className="text-xl md:text-3xl font-bold text-[var(--text-secondary)] neon-glow">
-            {remotePercent.toFixed(1)}%
+        <Card variant="default" padding="lg" hover="glow">
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-3">
+            Активные источники
+          </Text>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-accent-primary animate-pulse"></div>
+            <div className="text-3xl font-bold text-text-primary">
+              {analytics.activeSources}<Text as="span" size="lg" color="tertiary">/3</Text>
+            </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Active Sources */}
-        <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] flex flex-col justify-center">
-          <div className="text-[var(--text-muted)] text-[9px] mb-1">SOURCES</div>
-          <div className="flex items-center gap-2">
-            <span className="pulse text-[var(--text-secondary)]">●</span>
-            <span className="text-lg md:text-xl font-bold text-[var(--text-primary)]">
-              {analytics.activeSources}/3
-            </span>
-          </div>
-        </div>
-
-        {/* Last Update */}
-        <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)] flex flex-col justify-center">
-          <div className="text-[var(--text-muted)] text-[9px] mb-1">SYNC</div>
-          <div className="text-xs md:text-sm font-bold text-[var(--text-primary)]">
+        <Card variant="default" padding="lg" hover="glow">
+          <Text size="xs" color="secondary" className="uppercase tracking-wide mb-3">
+            Статус синхронизации
+          </Text>
+          <Text size="base" weight="medium" color="primary" className="pt-1">
             {formatRelativeTime(analytics.lastScrapedAt)}
-          </div>
-        </div>
-      </div>
+          </Text>
+        </Card>
+      </motion.div>
 
-      {/* Job Categories Distribution */}
+      {/* Job Categories */}
       {analytics.categoryDistribution && analytics.categoryDistribution.length > 0 && (
-        <div className="space-y-3">
-          <div className="text-[var(--text-secondary)]">[JOB CATEGORIES]</div>
-          <div className="space-y-2">
-            {analytics.categoryDistribution.slice(0, 5).map((cat) => (
-              <div key={cat.category} className="flex items-center justify-between text-xs border-l-2 border-[var(--accent-cyan)] pl-3 py-1">
-                <span className="text-[var(--text-primary)] uppercase">{cat.category}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-[var(--text-muted)]">{formatLargeNumber(cat.count)}</span>
-                  <span className="text-[var(--accent-cyan)] text-[9px]">
-                    {cat.avgMinSalary > 0 ? `${Math.round(cat.avgMinSalary / 1000)}K-${Math.round(cat.avgMaxSalary / 1000)}K ₽` : 'N/A'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <motion.div variants={item}>
+          <Card variant="default" padding="lg">
+            <Heading level="h3" weight="medium" color="primary" className="mb-6 uppercase tracking-wide">
+              Категории вакансий
+            </Heading>
+            <div className="space-y-4">
+              {analytics.categoryDistribution.slice(0, 5).map((cat) => {
+                const percent = analytics.totalVacancies > 0
+                  ? (cat.count / analytics.totalVacancies) * 100
+                  : 0
+                return (
+                  <div key={cat.category} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Text size="sm" weight="medium" color="primary" className="uppercase">
+                        {cat.category}
+                      </Text>
+                      <div className="flex items-center gap-4">
+                        <Text size="xs" color="secondary">
+                          {formatLargeNumber(cat.count)} вакансий
+                        </Text>
+                        {cat.avgMinSalary > 0 && (
+                          <Text size="xs" color="accent" className="font-medium">
+                            {Math.round(cat.avgMinSalary / 1000)}-{Math.round(cat.avgMaxSalary / 1000)}K ₽
+                          </Text>
+                        )}
+                      </div>
+                    </div>
+                    <ProgressBar value={cat.count} max={analytics.totalVacancies} />
+                    <Text size="xs" color="tertiary">
+                      {percent.toFixed(1)}% от всех вакансий
+                    </Text>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        </motion.div>
       )}
 
       {/* Work Format Distribution */}
       {analytics.workFormatDistribution && analytics.workFormatDistribution.length > 0 && (
-        <div className="space-y-3">
-          <div className="text-[var(--text-secondary)]">[WORK FORMAT]</div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <motion.div variants={item}>
+          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
+            Формат работы
+          </Heading>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {analytics.workFormatDistribution.map((format) => {
               const percent = analytics.totalVacancies > 0
                 ? (format.count / analytics.totalVacancies) * 100
                 : 0
               return (
-                <div key={format.format} className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
-                  <div className="text-[var(--text-muted)] text-[8px] mb-1 uppercase">{format.format || 'other'}</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg text-[var(--text-primary)] font-bold">{percent.toFixed(0)}%</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">({formatLargeNumber(format.count)})</span>
+                <Card key={format.format} variant="default" padding="lg" hover="lift">
+                  <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+                    {format.format || 'Другое'}
+                  </Text>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <div className="text-3xl font-bold text-accent-primary">{percent.toFixed(0)}%</div>
+                    <Text size="xs" color="tertiary">({formatLargeNumber(format.count)})</Text>
                   </div>
-                </div>
+                  <ProgressBar value={format.count} max={analytics.totalVacancies} />
+                </Card>
               )
             })}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Contract Type Distribution */}
       {analytics.contractTypeDistribution && analytics.contractTypeDistribution.length > 0 && (
-        <div className="space-y-3">
-          <div className="text-[var(--text-secondary)]">[CONTRACT TYPE]</div>
-          <div className="grid grid-cols-2 gap-2">
+        <motion.div variants={item}>
+          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
+            Тип контракта
+          </Heading>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {analytics.contractTypeDistribution.map((contract) => {
               const percent = analytics.totalVacancies > 0
                 ? (contract.count / analytics.totalVacancies) * 100
                 : 0
               return (
-                <div key={contract.type} className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
-                  <div className="text-[var(--text-muted)] text-[8px] mb-1 uppercase">{contract.type}</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg text-[var(--text-primary)] font-bold">{percent.toFixed(0)}%</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">({formatLargeNumber(contract.count)})</span>
+                <Card key={contract.type} variant="default" padding="lg" hover="lift">
+                  <Text size="xs" color="secondary" className="uppercase tracking-wide mb-2">
+                    {contract.type}
+                  </Text>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <div className="text-3xl font-bold text-text-primary">{percent.toFixed(0)}%</div>
+                    <Text size="xs" color="tertiary">({formatLargeNumber(contract.count)})</Text>
                   </div>
-                </div>
+                  <ProgressBar value={contract.count} max={analytics.totalVacancies} />
+                </Card>
               )
             })}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Company Size Distribution */}
       {analytics.companySizeDistribution && analytics.companySizeDistribution.length > 0 && (
-        <div className="space-y-3">
-          <div className="text-[var(--text-secondary)]">[COMPANY SIZE]</div>
-          <div className="space-y-2">
-            {analytics.companySizeDistribution.map((size) => (
-              <div key={size.size} className="flex items-center justify-between text-xs border-l-2 border-[var(--text-secondary)] pl-3 py-1">
-                <span className="text-[var(--text-primary)] uppercase">{size.size}</span>
-                <span className="text-[var(--text-muted)]">{formatLargeNumber(size.count)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <motion.div variants={item}>
+          <Card variant="default" padding="lg">
+            <Heading level="h3" weight="medium" color="primary" className="mb-6 uppercase tracking-wide">
+              Размер компаний
+            </Heading>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analytics.companySizeDistribution.map((size) => {
+                const percent = analytics.totalVacancies > 0
+                  ? (size.count / analytics.totalVacancies) * 100
+                  : 0
+                return (
+                  <div key={size.size} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Text size="sm" weight="medium" color="primary" className="uppercase">
+                        {size.size}
+                      </Text>
+                      <Text size="xs" color="secondary">
+                        {formatLargeNumber(size.count)} ({percent.toFixed(1)}%)
+                      </Text>
+                    </div>
+                    <ProgressBar value={size.count} max={analytics.totalVacancies} />
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   )
 }

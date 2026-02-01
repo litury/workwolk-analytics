@@ -1,142 +1,207 @@
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
-import { useEffect } from 'react'
+'use client'
+import { motion } from 'framer-motion'
 import type { BaseViewProps } from '@/types/terminal'
 import { formatLargeNumber } from '@/lib/utils/formatters'
-import { ProgressBar } from '@/lib/utils/terminal'
+import { Card, Heading, Text } from '@/components/ui'
 
 export default function TrendsView({ analytics, loading }: BaseViewProps) {
-  const count = useMotionValue(0)
-  const rounded = useTransform(count, (latest) => Math.round(latest))
-
-  useEffect(() => {
-    if (analytics?.aiAdoptionRate) {
-      const animation = animate(count, analytics.aiAdoptionRate, {
-        duration: 2,
-        ease: "easeOut"
-      })
-      return animation.stop
-    }
-  }, [analytics?.aiAdoptionRate, count])
-
   if (loading || !analytics) {
     return (
-      <div className="font-mono text-xs md:text-sm space-y-4">
-        <div className="text-[var(--text-secondary)] pulse">
-          [LOADING...] Анализ трендов...
+      <div className="space-y-6">
+        <div className="h-32 bg-background-secondary rounded-card animate-pulse"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-48 bg-background-secondary rounded-card animate-pulse"></div>
+          ))}
         </div>
       </div>
     )
   }
 
-  const topSkills = analytics.topSkills?.slice(0, 3) || []
+  const topSkills = analytics.topSkills?.slice(0, 5) || []
   const workFormats = analytics.workFormatDistribution || []
   const seniority = analytics.seniorityDistribution || []
 
-  const remoteFormat = workFormats.find(f => f.format.toLowerCase().includes('remote') || f.format.toLowerCase().includes('удален'))
+  const remoteFormat = workFormats.find(f =>
+    f.format.toLowerCase().includes('remote') || f.format.toLowerCase().includes('удален')
+  )
   const totalFormats = workFormats.reduce((sum, f) => sum + f.count, 0)
-  const remotePercent = remoteFormat && totalFormats > 0 ? (remoteFormat.count / totalFormats) * 100 : 0
+  const remotePercent = remoteFormat && totalFormats > 0
+    ? (remoteFormat.count / totalFormats) * 100
+    : 0
 
   const topSeniority = seniority.length > 0
     ? seniority.reduce((prev, current) => (prev.count > current.count ? prev : current))
     : null
 
-  const avgFrom = analytics.averageSalaryFrom
-  const avgTo = analytics.averageSalaryTo
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 }
+    }
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  }
 
   return (
-    <div className="font-mono text-xs md:text-sm space-y-4">
+    <motion.div
+      variants={container}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-[var(--text-secondary)] text-xs">[TRENDS]</span>
-        <span className="text-[var(--accent-cyan)] neon-glow text-xs">ANALYSIS</span>
-      </div>
-
-      {/* Hero Metric: AI Adoption */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="border border-[var(--border-color)] p-4 bg-[var(--bg-secondary)] box-glow text-center"
-      >
-        <div className="text-[var(--text-muted)] text-[9px] mb-2">AI/ML_ADOPTION</div>
-        <motion.div className="text-4xl md:text-5xl font-bold text-[var(--accent-pink)] neon-glow-pink mb-2">
-          {rounded.get().toFixed(1)}%
-        </motion.div>
-        <div className="text-[var(--text-muted)] text-[9px]">
-          GPT • ML • Neural Networks
-        </div>
+      <motion.div variants={item}>
+        <Heading level="h2" weight="bold" color="primary" className="uppercase tracking-wide">
+          Рыночные тренды
+        </Heading>
+        <Text size="sm" color="secondary" className="mt-2">
+          Ключевые направления развития IT рынка
+        </Text>
       </motion.div>
 
-      {/* Remote Work Trend */}
-      <div className="space-y-2">
-        <div className="text-[var(--text-muted)] text-[9px]">REMOTE_TREND</div>
-        <div className="border border-[var(--border-color)] p-3 bg-[var(--bg-secondary)]">
-          <div className="flex items-center justify-between">
-            <div className="text-xl md:text-2xl font-bold text-[var(--text-secondary)] neon-glow">
-              {remotePercent.toFixed(1)}%
+      {/* Key Trends Grid */}
+      <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* AI Adoption */}
+        <Card variant="default" padding="lg" hover="glow">
+          <div className="space-y-4">
+            <Text size="xs" color="secondary" className="uppercase tracking-wide">
+              AI Adoption Rate
+            </Text>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-accent-primary">
+                {analytics.aiAdoptionRate || 0}%
+              </div>
+              <Text size="xs" color="tertiary" className="mt-2">
+                вакансий требуют AI навыки
+              </Text>
             </div>
-            <div className="text-[var(--text-secondary)] text-sm">
-              {remotePercent > 35 ? '↑ GROWING' : remotePercent > 25 ? '→ STABLE' : '↓ DECLINING'}
+            <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full bg-accent-primary transition-all duration-1000"
+                style={{ width: `${Math.min(analytics.aiAdoptionRate || 0, 100)}%` }}
+              />
             </div>
           </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* Hot Skills This Month */}
-      <div className="space-y-2">
-        <div className="text-[var(--text-muted)] text-[9px]">TOP_3_SKILLS</div>
-        <div className="space-y-2">
-          {topSkills.map((skill, index) => (
-            <motion.div
-              key={skill.skill}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center justify-between border-l-2 border-[var(--accent-cyan)] pl-3 py-1"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[var(--accent-cyan)] text-[9px]">↑</span>
-                <span className="text-[var(--text-primary)] text-xs">{skill.skill}</span>
+        {/* Remote Work */}
+        <Card variant="default" padding="lg" hover="glow">
+          <div className="space-y-4">
+            <Text size="xs" color="secondary" className="uppercase tracking-wide">
+              Remote Work Trend
+            </Text>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-text-primary">
+                {remotePercent.toFixed(0)}%
               </div>
-              <span className="text-[var(--text-muted)] text-[9px]">
-                {formatLargeNumber(skill.count)}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* Market Insights */}
-      <div className="space-y-2">
-        <div className="text-[var(--text-muted)] text-[9px]">INSIGHTS</div>
-        <div className="grid grid-cols-2 gap-2">
-          {/* Salary Trend */}
-          <div className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[8px] mb-1">AVG_SALARY</div>
-            {avgFrom && avgTo ? (
-              <div className="text-xs text-[var(--accent-cyan)]">
-                {formatLargeNumber(Math.round(avgFrom))} – {formatLargeNumber(Math.round(avgTo))} ₽
-              </div>
-            ) : (
-              <div className="text-[var(--text-muted)] text-[9px]">N/A</div>
-            )}
+              <Text size="xs" color="tertiary" className="mt-2">
+                удалённых вакансий
+              </Text>
+            </div>
+            <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full bg-text-primary transition-all duration-1000"
+                style={{ width: `${Math.min(remotePercent, 100)}%` }}
+              />
+            </div>
           </div>
+        </Card>
 
-          {/* Seniority Demand */}
-          <div className="border border-[var(--border-color)] p-2 bg-[var(--bg-secondary)]">
-            <div className="text-[var(--text-muted)] text-[8px] mb-1">TOP_LEVEL</div>
-            {topSeniority ? (
-              <div>
-                <div className="text-xs text-[var(--text-secondary)]">
+        {/* Top Seniority */}
+        {topSeniority && (
+          <Card variant="default" padding="lg" hover="glow">
+            <div className="space-y-4">
+              <Text size="xs" color="secondary" className="uppercase tracking-wide">
+                Most Demanded Level
+              </Text>
+              <div className="text-center">
+                <Heading level="h3" color="primary" className="uppercase">
                   {topSeniority.level}
-                </div>
+                </Heading>
+                <Text size="xs" color="tertiary" className="mt-2">
+                  {formatLargeNumber(topSeniority.count)} вакансий
+                </Text>
               </div>
-            ) : (
-              <div className="text-[var(--text-muted)] text-[9px]">N/A</div>
-            )}
+              <div className="w-full bg-background-tertiary rounded-full h-3 overflow-hidden">
+                <div
+                  className="h-full bg-accent-secondary transition-all duration-1000"
+                  style={{
+                    width: `${Math.min((topSeniority.count / analytics.totalVacancies) * 100, 100)}%`
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+        )}
+      </motion.div>
+
+      {/* Top Growing Skills */}
+      {topSkills.length > 0 && (
+        <motion.div variants={item}>
+          <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide">
+            Топ растущие навыки
+          </Heading>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topSkills.map((skill, index) => (
+              <Card key={skill.skill} variant="default" padding="lg" hover="lift">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-xl font-bold text-accent-primary">
+                        #{index + 1}
+                      </div>
+                      <Text size="base" weight="bold" color="primary">
+                        {skill.skill}
+                      </Text>
+                    </div>
+                    <Text size="xs" color="secondary">
+                      {formatLargeNumber(skill.count)} вакансий
+                    </Text>
+                  </div>
+                  <div className="text-3xl">📈</div>
+                </div>
+              </Card>
+            ))}
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      )}
+
+      {/* Work Format Distribution */}
+      {workFormats.length > 0 && (
+        <motion.div variants={item}>
+          <Card variant="blur" padding="lg">
+            <Heading level="h3" weight="medium" color="primary" className="mb-4 uppercase tracking-wide text-center">
+              Распределение форматов работы
+            </Heading>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {workFormats.slice(0, 3).map((format) => {
+                const percent = totalFormats > 0
+                  ? (format.count / totalFormats) * 100
+                  : 0
+
+                return (
+                  <div key={format.format} className="text-center space-y-2">
+                    <Text size="sm" color="secondary" className="uppercase">
+                      {format.format || 'Другое'}
+                    </Text>
+                    <div className="text-4xl font-bold text-accent-primary">
+                      {percent.toFixed(0)}%
+                    </div>
+                    <Text size="xs" color="tertiary">
+                      {formatLargeNumber(format.count)} вакансий
+                    </Text>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+    </motion.div>
   )
 }
