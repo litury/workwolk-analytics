@@ -25,66 +25,19 @@ export interface IVacancy {
 }
 
 export interface IAnalytics {
-  // Базовые метрики
+  // Базовые метрики (для главной)
   totalVacancies: number;
   remoteVacancies: number;
-  averageSalaryFrom: number | null;
-  averageSalaryTo: number | null;
-  topSkills: Array<{ skill: string; count: number }>;
   lastScrapedAt: string | null;
   activeSources: number;
-  // === НОВЫЕ МЕТРИКИ (Phase 1: Quick Wins) ===
-  aiAdoptionRate: number;
-  seniorityDistribution: Array<{ level: string; count: number }>;
-  topBenefits: Array<{ benefit: string; count: number }>;
-  workFormatDistribution: Array<{ format: string; count: number }>;
-  topTechStack: Array<{ tech: string; count: number }>;
-  // === AI ENRICHED METRICS ===
-  categoryDistribution: Array<{
-    category: string;
-    count: number;
-    avgMinSalary: number;
-    avgMaxSalary: number;
-    companies: number;
-  }>;
-  topCompanies: Array<{
-    company: string;
-    type: string | null;
-    vacancies: number;
-    categories: number;
-    avgMinSalary: number;
-    avgMaxSalary: number;
-  }>;
-  salaryPercentiles: {
-    bySeniority: Array<{
-      level: string;
-      count: number;
-      p25: number;
-      p50: number;
-      p75: number;
-      aiJobs: number;
-    }>;
-  };
-  techStackDetailed: Array<{
-    name: string;
-    category: string;
-    count: number;
-    requiredPercent: number;
-  }>;
-  aiAdoptionByCategory: Array<{
-    category: string;
-    total: number;
-    aiJobs: number;
-    aiPercentage: number;
-  }>;
-  // === ADDITIONAL ENRICHED METRICS ===
-  topJobTags: Array<{ tag: string; count: number }>;
-  companySizeDistribution: Array<{ size: string; count: number }>;
-  contractTypeDistribution: Array<{ type: string; count: number }>;
-  topIndustries: Array<{ industry: string; count: number; avgSalary: number }>;
-  // === SALARY METRICS (AI-enriched) ===
+
+  // Навыки (для раздела "Навыки")
+  topSkills: Array<{ skill: string; count: number }>;           // топ 12 (для главной - slice(0,10))
+  topTechStack: Array<{ tech: string; count: number }>;         // топ 100 (AI-enriched, для раздела Skills)
+
+  // Зарплаты (для раздела "Зарплаты")
   salaryBySeniority: Array<{
-    level: string;
+    level: string;  // junior, middle, senior, lead, principal
     count: number;
     avgMin: number;
     avgMax: number;
@@ -92,6 +45,18 @@ export interface IAnalytics {
     p50: number;
     p75: number;
   }>;
+
+  // Категории (для будущего SEO)
+  categoryDistribution: Array<{
+    category: string;
+    count: number;
+    avgMinSalary: number;
+    avgMaxSalary: number;
+    companies: number;
+  }>;
+
+  // Дополнительные метрики
+  seniorityDistribution: Array<{ level: string; count: number }>;
   salaryDistribution: {
     withSalary: number;
     withoutSalary: number;

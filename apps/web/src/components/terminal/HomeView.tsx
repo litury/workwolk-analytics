@@ -19,7 +19,7 @@ export default function HomeView({ analytics, loading }: BaseViewProps) {
     )
   }
 
-  const topSkills = analytics?.topSkills?.slice(0, 12) || []
+  const topSkills = analytics?.topSkills?.slice(0, 10) || []
 
   const container = {
     hidden: { opacity: 0 },
