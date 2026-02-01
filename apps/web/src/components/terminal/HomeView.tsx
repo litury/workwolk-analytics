@@ -63,7 +63,7 @@ export default function HomeView({ analytics, loading }: BaseViewProps) {
           color="tertiary"
           className="mt-2"
         >
-          Data-driven аналитика IT вакансий • 5000+ позиций • Реальные зарплаты
+          5000+ вакансий • AI-аналитика • Реальные цифры
         </Text>
       </motion.div>
 
@@ -172,7 +172,7 @@ export default function HomeView({ analytics, loading }: BaseViewProps) {
         <Card variant="blur" padding="lg">
           <div className="text-center">
             <Text size="sm" color="secondary">
-              Анализируем 5000+ вакансий с HH.ru, Habr Career, SuperJob. Обновление каждые 24 часа.
+              HH.ru, Habr Career, SuperJob. Обновление: каждый день.
             </Text>
           </div>
         </Card>

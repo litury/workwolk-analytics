@@ -160,7 +160,7 @@ export default function Home() {
             <div className="text-center md:text-right">
               <div className="text-text-primary font-medium">WorkWolk</div>
               <div className="text-text-secondary text-xs mt-1">
-                Охотник за зарплатами • HH.ru, Habr Career, SuperJob
+                Охотник за зарплатами
               </div>
               <div className="text-text-tertiary text-xs mt-1">
                 v0.1.0 • Обновлено: {new Date().toLocaleDateString('ru-RU')}

@@ -43,7 +43,7 @@ export default function AboutPage() {
                 Прозрачность зарплат
               </Heading>
               <Text size="sm" color="secondary">
-                Реальные данные по зарплатам из тысяч вакансий. Знай свою рыночную стоимость.
+                Реальные данные. Знай свою цену.
               </Text>
             </Card>
 
@@ -52,7 +52,7 @@ export default function AboutPage() {
                 Экономия времени
               </Heading>
               <Text size="sm" color="secondary">
-                Все удалённые вакансии из разных источников в одном месте с умными фильтрами.
+                Все источники в одном месте.
               </Text>
             </Card>
 
@@ -61,7 +61,7 @@ export default function AboutPage() {
                 Data-driven решения
               </Heading>
               <Text size="sm" color="secondary">
-                Принимай карьерные решения на основе реальных данных, а не мнений с форумов.
+                Данные, не мнения.
               </Text>
             </Card>
           </div>

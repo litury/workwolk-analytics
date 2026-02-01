@@ -20,7 +20,7 @@ export function Navigation({ currentView, onViewChange, views }: NavigationProps
           {/* Logo */}
           <div className="flex-shrink-0">
             <span className="text-lg font-display font-medium tracking-[0.125rem] text-accent-primary">
-              IT ANALYTICS
+              WORKWOLK
             </span>
           </div>
 
