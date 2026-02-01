@@ -49,14 +49,21 @@ export default function HomeView({ analytics, loading }: BaseViewProps) {
           color="primary"
           className="text-5xl md:text-6xl mb-4"
         >
-          IT ANALYTICS
+          WorkWolk
         </Heading>
         <Text
           size="lg"
           color="secondary"
           className="uppercase tracking-wide"
         >
-          Аналитика IT рынка в реальном времени
+          Охотник за зарплатами
+        </Text>
+        <Text
+          size="sm"
+          color="tertiary"
+          className="mt-2"
+        >
+          Data-driven аналитика IT вакансий • 5000+ позиций • Реальные зарплаты
         </Text>
       </motion.div>
 
@@ -165,7 +172,7 @@ export default function HomeView({ analytics, loading }: BaseViewProps) {
         <Card variant="blur" padding="lg">
           <div className="text-center">
             <Text size="sm" color="secondary">
-              Данные обновляются автоматически каждые 24 часа из ведущих IT job-платформ
+              Анализируем 5000+ вакансий с HH.ru, Habr Career, SuperJob. Обновление каждые 24 часа.
             </Text>
           </div>
         </Card>

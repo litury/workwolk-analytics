@@ -3,8 +3,21 @@ import './globals.css'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 
 export const metadata: Metadata = {
-  title: 'IT Analytics - Аналитика IT рынка',
-  description: 'Собираем и анализируем данные о вакансиях для мониторинга трендов IT рынка',
+  title: 'WorkWolk — Зарплаты IT разработчиков 2026 | Удалённые вакансии',
+  description: 'Охотник за зарплатами. Data-driven аналитика IT рынка: реальные зарплаты из 5000+ вакансий, тренды, удалённая работа. Узнай, сколько платят за твой стек.',
+  keywords: 'зарплаты it, вакансии разработчиков, удаленная работа, зарплаты программистов 2026, workwolk',
+  openGraph: {
+    title: 'WorkWolk — Зарплаты IT разработчиков 2026',
+    description: 'Data-driven аналитика IT рынка: реальные зарплаты, тренды, удалённые вакансии',
+    type: 'website',
+    locale: 'ru_RU',
+    siteName: 'WorkWolk',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'WorkWolk — Охотник за зарплатами',
+    description: 'Узнай свою рыночную стоимость. 5000+ вакансий с AI-анализом.',
+  },
 }
 
 export const viewport: Viewport = {

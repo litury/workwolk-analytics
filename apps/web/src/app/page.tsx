@@ -134,24 +134,37 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border-primary bg-background-secondary mt-16">
         <Container maxWidth="2xl">
-          <div className="py-6 flex items-center justify-between text-sm text-text-secondary">
+          <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-4">
               <a
+                href="/about"
+                className="text-text-secondary hover:text-accent-primary transition-all duration-200"
+              >
+                О проекте
+              </a>
+              <span className="text-border-primary">|</span>
+              <a
                 href="https://t.me/litury"
-                className="hover:text-accent-primary transition-all duration-200"
+                className="text-text-secondary hover:text-accent-primary transition-all duration-200"
               >
                 Telegram
               </a>
               <span className="text-border-primary">|</span>
               <a
                 href="https://github.com/litury/workwolk-analytics"
-                className="hover:text-accent-primary transition-all duration-200"
+                className="text-text-secondary hover:text-accent-primary transition-all duration-200"
               >
                 GitHub
               </a>
             </div>
-            <div className="text-text-tertiary">
-              IT Analytics v0.1.0
+            <div className="text-center md:text-right">
+              <div className="text-text-primary font-medium">WorkWolk</div>
+              <div className="text-text-secondary text-xs mt-1">
+                Охотник за зарплатами • HH.ru, Habr Career, SuperJob
+              </div>
+              <div className="text-text-tertiary text-xs mt-1">
+                v0.1.0 • Обновлено: {new Date().toLocaleDateString('ru-RU')}
+              </div>
             </div>
           </div>
         </Container>
