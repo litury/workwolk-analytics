@@ -1,143 +1,33 @@
 /**
  * ETL Phase 3: Load - AI Enrichment
  *
- * Обогащает вакансии через Gemini AI анализ.
+ * Обогащает вакансии через AI анализ (OpenRouter или Gemini с автоматическим fallback).
  * Читает вакансии с description но БЕЗ AI-данных, анализирует и сохраняет:
+ * - jobCategory, jobTags (категоризация)
+ * - companyNameNormalized, companyType (нормализация компании)
  * - techStack (структурированный список технологий)
  * - seniorityLevel (junior/middle/senior/lead/principal)
  * - requiresAi (упоминается ли AI/ML)
  * - benefits (бонусы и преимущества)
  * - workFormat (remote/hybrid/office)
- * - companySize (размер компании)
- * - companyIndustry (индустрия)
+ * - companySize, companyIndustry (размер и индустрия компании)
  * - contractType (тип контракта)
+ * - descriptionShort (краткое описание для UI)
+ * - salaryRecommendation (AI-рекомендация зарплаты)
  *
  * Использование:
  * bun run enrich-ai.ts --limit 100    # Обработать 100 вакансий
- * bun run enrich-ai.ts --batch 20     # По 20 за раз (рекомендуется для Gemini rate limits)
+ * bun run enrich-ai.ts --batch 20     # По 20 за раз
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { z } from 'zod';
 import { db, closeDatabase } from './src/shared/db/client';
 import { vacancies } from './src/shared/db/schema';
 import { sql, isNull, isNotNull, and } from 'drizzle-orm';
 import { createLogger } from './src/shared/utils/logger';
-import { env } from './src/config/env';
+import { getAIProvider } from './src/shared/ai';
+import type { AIAnalysisResult } from './src/shared/ai';
 
 const log = createLogger('EnrichAI');
-
-// Схема для AI-анализа
-const AIAnalysisSchema = z.object({
-  techStack: z.array(z.object({
-    name: z.string(),
-    category: z.enum(['language', 'framework', 'tool', 'cloud']),
-    required: z.boolean(),
-  })).optional(),
-  seniorityLevel: z.enum(['junior', 'middle', 'senior', 'lead', 'principal']).nullable().optional(),
-  requiresAi: z.boolean().optional(),
-  benefits: z.array(z.string()).optional(),
-  workFormat: z.enum(['remote', 'hybrid', 'office']).nullable().optional(),
-  companySize: z.enum(['1-10', '11-50', '51-200', '201-500', '500+']).nullable().optional(),
-  companyIndustry: z.string().nullable().optional(),
-  contractType: z.enum(['permanent', 'contract', 'freelance', 'intern']).nullable().optional(),
-});
-
-type AIAnalysisResult = z.infer<typeof AIAnalysisSchema>;
-
-// Gemini client singleton
-let genAI: GoogleGenerativeAI | null = null;
-
-function getGeminiClient(): GoogleGenerativeAI {
-  if (!genAI) {
-    if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not found in environment');
-    }
-    genAI = new GoogleGenerativeAI(env.GOOGLE_GENERATIVE_AI_API_KEY);
-    log.info('Gemini AI client initialized');
-  }
-  return genAI;
-}
-
-/**
- * Анализировать вакансию через Gemini AI
- */
-async function analyzeWithGeminiAsync(description: string, skills: string[]): Promise<AIAnalysisResult | null> {
-  try {
-    const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
-
-    const prompt = `Analyze this job vacancy and extract structured data in JSON format.
-
-Vacancy Description:
-${description.substring(0, 4000)}
-
-Skills from page: ${skills.join(', ')}
-
-Extract:
-1. techStack: array of { name, category (language|framework|tool|cloud), required (bool) }
-   - Example: [{"name": "React", "category": "framework", "required": true}]
-   - Include both explicitly listed and inferred from description
-   - Mark as required=true if mentioned in requirements, false if nice-to-have
-
-2. seniorityLevel: junior | middle | senior | lead | principal
-   - Infer from title, years of experience, responsibilities
-   - junior: 0-1 year, middle: 1-3 years, senior: 3-6 years, lead: 6+ years
-
-3. requiresAi: boolean
-   - true if mentions: AI, ML, machine learning, GPT, neural networks, deep learning, LLM, RAG, ChatGPT, AI/ML
-   - false otherwise
-
-4. benefits: array of strings
-   - Examples: "ДМС", "Опционы", "Обучение", "Гибкий график", "Удалённая работа", "Офис в центре"
-   - Extract ALL mentioned benefits
-
-5. workFormat: remote | hybrid | office
-   - remote: полностью удалённо
-   - hybrid: гибрид офиса и удалёнки
-   - office: только офис
-
-6. companySize: 1-10 | 11-50 | 51-200 | 201-500 | 500+
-   - Infer from description if mentioned (startup, small team, large company, etc.)
-   - null if not mentioned
-
-7. companyIndustry: string
-   - Examples: "Fintech", "E-commerce", "SaaS", "GameDev", "AdTech", "EdTech", "HealthTech"
-   - null if cannot determine
-
-8. contractType: permanent | contract | freelance | intern
-   - permanent: постоянная работа
-   - contract: контракт, B2B
-   - freelance: фриланс проект
-   - intern: стажировка
-
-Return ONLY valid JSON, no markdown formatting, no explanations.`;
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-
-    // Извлечь JSON из ответа
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      log.warn('Could not extract JSON from Gemini response');
-      return null;
-    }
-
-    const aiData = JSON.parse(jsonMatch[0]);
-    const validated = AIAnalysisSchema.parse(aiData);
-
-    log.info('AI analysis successful', {
-      techStackCount: validated.techStack?.length || 0,
-      seniorityLevel: validated.seniorityLevel,
-      requiresAi: validated.requiresAi,
-    });
-
-    return validated;
-  } catch (error) {
-    log.error('Failed to analyze with Gemini', error instanceof Error ? error : undefined);
-    return null;
-  }
-}
 
 /**
  * Главная функция
@@ -146,11 +36,15 @@ async function main() {
   const limit = parseInt(process.argv.find(arg => arg.startsWith('--limit='))?.split('=')[1] || '100', 10);
   const batchSize = parseInt(process.argv.find(arg => arg.startsWith('--batch='))?.split('=')[1] || '20', 10);
 
+  // Получаем AI провайдера (с автоматическим fallback)
+  const aiProvider = getAIProvider();
+
   console.log('🤖 ETL Phase 3: AI Enrichment...\n');
   console.log(`📊 Параметры:`);
+  console.log(`   - Провайдер: ${aiProvider.name} (${aiProvider.model})`);
   console.log(`   - Максимум вакансий: ${limit}`);
-  console.log(`   - Размер батча: ${batchSize} (медленнее, но надёжнее для Gemini rate limits)`);
-  console.log(`   - Модель: Gemini 3 Flash Preview\n`);
+  console.log(`   - Размер батча: ${batchSize}`);
+  console.log(`   - Rate limit: ${aiProvider.rateLimit.requestsPerMinute} RPM\n`);
 
   try {
     // Получаем вакансии с description но БЕЗ AI-анализа
@@ -190,15 +84,19 @@ async function main() {
           continue;
         }
 
-        const analysis = await analyzeWithGeminiAsync(
+        const analysis = await aiProvider.analyzeVacancy(
           vacancy.description,
           (vacancy.skills as string[]) || []
         );
 
         if (analysis) {
-          // Обновляем запись в БД
+          // Обновляем запись в БД (все поля включая новые)
           await db.update(vacancies)
             .set({
+              jobCategory: analysis.jobCategory,
+              jobTags: analysis.jobTags,
+              companyNameNormalized: analysis.companyNameNormalized,
+              companyType: analysis.companyType,
               techStack: analysis.techStack as any,
               seniorityLevel: analysis.seniorityLevel,
               requiresAi: analysis.requiresAi || false,
@@ -207,21 +105,23 @@ async function main() {
               companySize: analysis.companySize,
               companyIndustry: analysis.companyIndustry,
               contractType: analysis.contractType,
+              descriptionShort: analysis.descriptionShort,
+              salaryRecommendation: analysis.salaryRecommendation as any,
               aiEnrichedAt: new Date(),
               updatedAt: new Date(),
             })
             .where(sql`${vacancies.id} = ${vacancy.id}`);
 
           successful++;
-          console.log(`   ✅ AI анализ: ${analysis.techStack?.length || 0} tech, ${analysis.seniorityLevel || '?'}, AI=${analysis.requiresAi}\n`);
+          console.log(`   ✅ ${analysis.jobCategory} | ${analysis.techStack?.length || 0} tech | ${analysis.seniorityLevel || '?'}\n`);
         } else {
           failed++;
           console.log(`   ❌ Ошибка AI анализа\n`);
         }
 
-        // Задержка между запросами к Gemini (rate limits!)
-        // Gemini 3 Flash: 15 RPM (requests per minute)
-        await new Promise(resolve => setTimeout(resolve, 4000 + Math.random() * 2000));
+        // Динамическая задержка по rate limit провайдера
+        const delay = Math.ceil(60000 / aiProvider.rateLimit.requestsPerMinute);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
 
       console.log(`\n📊 Статус батча: ${successful}/${processed} успешно, ${failed} ошибок`);
