@@ -116,7 +116,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
  * Получить аналитические данные
  */
 export async function getAnalytics(): Promise<IAnalytics> {
-  const response = await fetch(`${API_BASE_URL}/api/vacancies/analytics`, {
+  const response = await fetch(`${API_BASE_URL}/vacancies/analytics`, {
     cache: 'no-store', // Всегда свежие данные
   });
 
@@ -145,7 +145,7 @@ export async function getVacancies(params?: {
     searchParams.set('skills', params.skills.join(','));
   }
 
-  const url = `${API_BASE_URL}/api/vacancies?${searchParams.toString()}`;
+  const url = `${API_BASE_URL}/vacancies?${searchParams.toString()}`;
 
   const response = await fetch(url, {
     cache: 'no-store',
